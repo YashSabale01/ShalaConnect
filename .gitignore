@@ -25,6 +25,10 @@ uploads/
 .DS_Store
 Thumbs.db
 
+# Local scripts
+*.bat
+frontend/.env.production
+
 # Logs
 *.log
 logs/
