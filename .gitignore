@@ -1,0 +1,30 @@
+# Root .gitignore
+
+# Environment files — NEVER commit these
+.env
+backend/.env
+frontend/.env
+
+# Build outputs
+backend/target/
+frontend/dist/
+frontend/node_modules/
+
+# Uploads directory
+backend/uploads/
+uploads/
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+*.suo
+*.user
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/

@@ -1,0 +1,214 @@
+package com.shalaconnect.service.impl;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.shalaconnect.dto.request.FormRequest;
+import com.shalaconnect.exception.BadRequestException;
+import com.shalaconnect.exception.ResourceNotFoundException;
+import com.shalaconnect.model.DynamicForm;
+import com.shalaconnect.model.FormResponse;
+import com.shalaconnect.model.Notification;
+import com.shalaconnect.model.User;
+import com.shalaconnect.repository.*;
+import com.shalaconnect.service.FormService;
+import lombok.RequiredArgsConstructor;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class FormServiceImpl implements FormService {
+
+    private final DynamicFormRepository formRepository;
+    private final FormResponseRepository responseRepository;
+    private final UserRepository userRepository;
+    private final NotificationRepository notificationRepository;
+    private final ObjectMapper objectMapper;
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getAllForms(String currentUserEmail) {
+        User currentUser = userRepository.findByEmail(currentUserEmail).orElse(null);
+        return formRepository.findByActiveTrueOrderByCreatedAtDesc().stream()
+            .map(f -> toMap(f, currentUser))
+            .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<String, Object> getFormById(Long id, String currentUserEmail) {
+        DynamicForm form = findById(id);
+        User currentUser = userRepository.findByEmail(currentUserEmail).orElse(null);
+        return toMap(form, currentUser);
+    }
+
+    @Override
+    @Transactional
+    public Map<String, Object> createForm(FormRequest request, String creatorEmail) {
+        User creator = userRepository.findByEmail(creatorEmail)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        DynamicForm form = DynamicForm.builder()
+            .title(request.getTitle())
+            .description(request.getDescription())
+            .fieldsJson(request.getFieldsJson())
+            .createdBy(creator)
+            .deadline(request.getDeadline())
+            .active(true)
+            .build();
+
+        form = formRepository.save(form);
+        final Long formId = form.getId();
+        final String formTitle = form.getTitle();
+
+        // Notify headmasters
+        userRepository.findByRoleAndActiveTrue(User.Role.HEADMASTER).forEach(hm -> {
+            notificationRepository.save(Notification.builder()
+                .user(hm)
+                .title("New Form Assigned")
+                .message("Please fill out the form: " + formTitle)
+                .type(Notification.NotificationType.FORM)
+                .referenceId(formId)
+                .referenceType("FORM")
+                .build());
+        });
+
+        return toMap(form, creator);
+    }
+
+    @Override
+    @Transactional
+    public Map<String, Object> submitFormResponse(Long formId, String answersJson, String submitterEmail) {
+        DynamicForm form = findById(formId);
+        User submitter = userRepository.findByEmail(submitterEmail)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (responseRepository.existsByFormIdAndSubmittedById(formId, submitter.getId())) {
+            throw new BadRequestException("You have already submitted a response for this form");
+        }
+
+        FormResponse response = FormResponse.builder()
+            .form(form)
+            .submittedBy(submitter)
+            .school(submitter.getSchool())
+            .answersJson(answersJson)
+            .build();
+
+        responseRepository.save(response);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("success", true);
+        result.put("message", "Form response submitted successfully");
+        return result;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public byte[] exportFormResponsesAsExcel(Long formId) {
+        DynamicForm form = findById(formId);
+        List<FormResponse> responses = responseRepository.findByFormId(formId);
+
+        try (XSSFWorkbook workbook = new XSSFWorkbook()) {
+            Sheet sheet = workbook.createSheet("Responses");
+
+            // Parse fields
+            List<Map<String, Object>> fields = objectMapper.readValue(
+                form.getFieldsJson(), new TypeReference<>() {});
+
+            // Header style
+            CellStyle headerStyle = workbook.createCellStyle();
+            Font headerFont = workbook.createFont();
+            headerFont.setBold(true);
+            headerStyle.setFont(headerFont);
+            headerStyle.setFillForegroundColor(IndexedColors.CORNFLOWER_BLUE.getIndex());
+            headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+
+            // Header row
+            Row headerRow = sheet.createRow(0);
+            Cell cell0 = headerRow.createCell(0);
+            cell0.setCellValue("School");
+            cell0.setCellStyle(headerStyle);
+            Cell cell1 = headerRow.createCell(1);
+            cell1.setCellValue("Submitted By");
+            cell1.setCellStyle(headerStyle);
+            Cell cell2 = headerRow.createCell(2);
+            cell2.setCellValue("Submitted At");
+            cell2.setCellStyle(headerStyle);
+
+            for (int i = 0; i < fields.size(); i++) {
+                Cell c = headerRow.createCell(3 + i);
+                c.setCellValue((String) fields.get(i).getOrDefault("label", "Field " + i));
+                c.setCellStyle(headerStyle);
+            }
+
+            // Data rows
+            DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+            for (int r = 0; r < responses.size(); r++) {
+                FormResponse resp = responses.get(r);
+                Row row = sheet.createRow(r + 1);
+                row.createCell(0).setCellValue(
+                    resp.getSchool() != null ? resp.getSchool().getName() : "");
+                row.createCell(1).setCellValue(resp.getSubmittedBy().getName());
+                row.createCell(2).setCellValue(
+                    resp.getSubmittedAt() != null ? resp.getSubmittedAt().format(dtf) : "");
+
+                Map<String, Object> answers = objectMapper.readValue(
+                    resp.getAnswersJson(), new TypeReference<>() {});
+                for (int f = 0; f < fields.size(); f++) {
+                    String fieldId = (String) fields.get(f).getOrDefault("id", "");
+                    Object answer = answers.getOrDefault(fieldId, "");
+                    row.createCell(3 + f).setCellValue(answer != null ? answer.toString() : "");
+                }
+            }
+
+            for (int i = 0; i < fields.size() + 3; i++) sheet.autoSizeColumn(i);
+
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            workbook.write(bos);
+            return bos.toByteArray();
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to export Excel: " + e.getMessage());
+        }
+    }
+
+    @Override
+    @Transactional
+    public void deleteForm(Long id) {
+        DynamicForm form = findById(id);
+        form.setActive(false);
+        formRepository.save(form);
+    }
+
+    private DynamicForm findById(Long id) {
+        return formRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Form", id));
+    }
+
+    private Map<String, Object> toMap(DynamicForm form, User currentUser) {
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("id", form.getId());
+        map.put("title", form.getTitle());
+        map.put("description", form.getDescription());
+        map.put("fieldsJson", form.getFieldsJson());
+        map.put("deadline", form.getDeadline());
+        map.put("createdAt", form.getCreatedAt());
+        map.put("createdByName", form.getCreatedBy() != null ? form.getCreatedBy().getName() : null);
+        map.put("responseCount", form.getResponses().size());
+        if (currentUser != null) {
+            boolean hasResponded = responseRepository
+                .existsByFormIdAndSubmittedById(form.getId(), currentUser.getId());
+            map.put("hasResponded", hasResponded);
+        } else {
+            map.put("hasResponded", false);
+        }
+        return map;
+    }
+}
