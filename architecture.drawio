@@ -1,0 +1,193 @@
+<mxfile host="app.diagrams.net" modified="2026-04-30T00:00:00.000Z" agent="draw.io" version="21.0.0">
+  <diagram name="ShalaConnect AWS Architecture" id="shalaconnect-arch">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="1">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- ═══════════════════════════════════════════════════ -->
+        <!-- TITLE -->
+        <!-- ═══════════════════════════════════════════════════ -->
+        <mxCell id="title" value="ShalaConnect — AWS Deployment Architecture" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=22;fontStyle=1;fontColor=#1a237e;" vertex="1" parent="1">
+          <mxGeometry x="327" y="30" width="1000" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════ -->
+        <!-- INTERNET / USER -->
+        <!-- ═══════════════════════════════════════════════════ -->
+        <mxCell id="internet" value="Internet" style="shape=mxgraph.cisco.sites.generic_building;sketch=0;html=1;pointerEvents=1;dashed=0;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;verticalLabelPosition=bottom;verticalAlign=top;align=center;outlineConnect=0;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="200" width="80" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="user" value="School Users&#xa;(Headmaster / Admin)" style="shape=mxgraph.aws4.user;sketch=0;html=1;pointerEvents=1;dashed=0;fillColor=#1a9c3e;strokeColor=none;strokeWidth=2;verticalLabelPosition=bottom;verticalAlign=top;align=center;outlineConnect=0;fontSize=12;fontColor=#1a9c3e;" vertex="1" parent="1">
+          <mxGeometry x="110" y="80" width="60" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- User → Internet arrow -->
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#1a9c3e;strokeWidth=2;" edge="1" source="user" target="internet" parent="1">
+          <mxCell as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════ -->
+        <!-- AWS CLOUD BOUNDARY -->
+        <!-- ═══════════════════════════════════════════════════ -->
+        <mxCell id="aws-cloud" value="AWS Cloud (ap-south-1 — Mumbai)" style="points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_aws_cloud_alt;strokeColor=#232F3E;fillColor=#FAFAFA;verticalAlign=top;align=center;spacingTop=25;fontSize=14;fontStyle=1;dashed=0;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="280" y="60" width="1100" height="900" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════ -->
+        <!-- S3 BUCKET — FRONTEND -->
+        <!-- ═══════════════════════════════════════════════════ -->
+        <mxCell id="s3-group" value="Amazon S3" style="points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_s3;strokeColor=#7AA116;fillColor=#F2F6E8;verticalAlign=top;align=center;spacingTop=25;fontSize=12;fontStyle=1;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="310" y="130" width="280" height="220" as="geometry" />
+        </mxCell>
+
+        <mxCell id="s3-icon" value="S3 Bucket&#xa;shalaconnect-frontend&#xa;(Static Website Hosting)" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.s3;labelBackgroundColor=#ffffff;sketch=0;fontStyle=1;fontSize=12;fillColor=#7AA116;strokeColor=none;fontColor=#ffffff;verticalLabelPosition=bottom;verticalAlign=top;align=center;" vertex="1" parent="1">
+          <mxGeometry x="400" y="190" width="78" height="78" as="geometry" />
+        </mxCell>
+
+        <mxCell id="s3-label" value="React 18 + Vite SPA&#xa;index.html, JS, CSS assets" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontColor=#5a5a5a;" vertex="1" parent="1">
+          <mxGeometry x="320" y="290" width="260" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════ -->
+        <!-- VPC -->
+        <!-- ═══════════════════════════════════════════════════ -->
+        <mxCell id="vpc" value="Amazon VPC" style="points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_vpc;strokeColor=#8C4FFF;fillColor=#F4EEFF;verticalAlign=top;align=center;spacingTop=25;fontSize=12;fontStyle=1;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="640" y="110" width="700" height="760" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════ -->
+        <!-- PUBLIC SUBNET -->
+        <!-- ═══════════════════════════════════════════════════ -->
+        <mxCell id="public-subnet" value="Public Subnet" style="points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_public_subnet;strokeColor=#147EBA;fillColor=#E6F2F8;verticalAlign=top;align=center;spacingTop=25;fontSize=11;fontStyle=1;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="660" y="160" width="660" height="380" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════ -->
+        <!-- SECURITY GROUP -->
+        <!-- ═══════════════════════════════════════════════════ -->
+        <mxCell id="sg" value="Security Group: shalaconnect-sg&#xa;Inbound: 22 (SSH), 80 (HTTP), 7070 (API)" style="shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_security_group;strokeColor=#DD344C;fillColor=#FFF0F0;verticalAlign=top;align=center;spacingTop=25;fontSize=10;fontStyle=1;dashed=1;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="680" y="210" width="620" height="300" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════ -->
+        <!-- EC2 INSTANCE -->
+        <!-- ═══════════════════════════════════════════════════ -->
+        <mxCell id="ec2-icon" value="EC2 t2.micro&#xa;Amazon Linux 2&#xa;13.232.221.21&#xa;(Free Tier)" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.ec2;labelBackgroundColor=#ffffff;sketch=0;fontStyle=1;fontSize=12;fillColor=#ED7100;strokeColor=none;fontColor=#ED7100;verticalLabelPosition=bottom;verticalAlign=top;align=center;" vertex="1" parent="1">
+          <mxGeometry x="730" y="270" width="78" height="78" as="geometry" />
+        </mxCell>
+
+        <!-- Spring Boot inside EC2 -->
+        <mxCell id="springboot" value="Spring Boot 3.2&#xa;Port :7070&#xa;JWT Auth + REST API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=1;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="860" y="255" width="200" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Systemd service -->
+        <mxCell id="systemd" value="systemd service&#xa;shalaconnect.service&#xa;(auto-restart)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="860" y="345" width="200" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- EC2 → SpringBoot arrow -->
+        <mxCell id="e-ec2-sb" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#82b366;strokeWidth=2;" edge="1" source="ec2-icon" target="springboot" parent="1">
+          <mxCell as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════ -->
+        <!-- PRIVATE SUBNET — RDS / MySQL -->
+        <!-- ═══════════════════════════════════════════════════ -->
+        <mxCell id="private-subnet" value="Private Subnet (localhost)" style="points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_private_subnet;strokeColor=#147EBA;fillColor=#ddeeff;verticalAlign=top;align=center;spacingTop=25;fontSize=11;fontStyle=1;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="660" y="580" width="660" height="240" as="geometry" />
+        </mxCell>
+
+        <mxCell id="mysql-icon" value="MySQL 8.0&#xa;school_management DB&#xa;Port: 3306 (localhost only)" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.rds;labelBackgroundColor=#ffffff;sketch=0;fontStyle=1;fontSize=12;fillColor=#C7131F;strokeColor=none;fontColor=#C7131F;verticalLabelPosition=bottom;verticalAlign=top;align=center;" vertex="1" parent="1">
+          <mxGeometry x="950" y="640" width="78" height="78" as="geometry" />
+        </mxCell>
+
+        <mxCell id="db-tables" value="Tables: users, schools, attendance_records,&#xa;gr_documents, meetings, notifications,&#xa;events, dynamic_forms, form_responses" style="text;html=1;strokeColor=#C7131F;fillColor=#fff0f0;align=center;verticalAlign=middle;fontSize=9;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="700" y="650" width="220" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- SpringBoot → MySQL arrow -->
+        <mxCell id="e-sb-db" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#C7131F;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="ec2-icon" target="mysql-icon" parent="1">
+          <mxCell as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════ -->
+        <!-- IAM -->
+        <!-- ═══════════════════════════════════════════════════ -->
+        <mxCell id="iam-icon" value="IAM User&#xa;cli_user_yash&#xa;(Deployment)" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.role;labelBackgroundColor=#ffffff;sketch=0;fontStyle=1;fontSize=11;fillColor=#DD344C;strokeColor=none;fontColor=#DD344C;verticalLabelPosition=bottom;verticalAlign=top;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1230" y="200" width="60" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════ -->
+        <!-- KEY PAIR -->
+        <!-- ═══════════════════════════════════════════════════ -->
+        <mxCell id="keypair" value="Key Pair&#xa;shalaconnect-key.pem&#xa;(SSH Access)" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.general;labelBackgroundColor=#ffffff;sketch=0;fontStyle=1;fontSize=10;fillColor=#7AA116;strokeColor=none;fontColor=#7AA116;verticalLabelPosition=bottom;verticalAlign=top;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1230" y="340" width="60" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════ -->
+        <!-- GITHUB -->
+        <!-- ═══════════════════════════════════════════════════ -->
+        <mxCell id="github" value="GitHub&#xa;YashSabale01/ShalaConnect&#xa;(Source Code)" style="shape=mxgraph.veeam2.github;strokeColor=#24292e;fillColor=#24292e;fontColor=#24292e;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="110" y="430" width="70" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════ -->
+        <!-- ENV VARS BOX -->
+        <!-- ═══════════════════════════════════════════════════ -->
+        <mxCell id="envvars" value="Environment Variables (EC2)&#xa;DB_URL · DB_PASSWORD&#xa;JWT_SECRET · ADMIN_EMAIL&#xa;ADMIN_PASSWORD · ALLOWED_ORIGINS" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;fontStyle=1;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="1230" y="480" width="220" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════ -->
+        <!-- FLOW ARROWS -->
+        <!-- ═══════════════════════════════════════════════════ -->
+
+        <!-- Internet → S3 -->
+        <mxCell id="e-int-s3" value="HTTPS&#xa;Static Files" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#7AA116;strokeWidth=2;fontStyle=1;fontSize=10;" edge="1" source="internet" target="s3-icon" parent="1">
+          <mxCell as="geometry" />
+        </mxCell>
+
+        <!-- Internet → EC2 -->
+        <mxCell id="e-int-ec2" value="HTTP :7070&#xa;REST API" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#ED7100;strokeWidth=2;fontStyle=1;fontSize=10;" edge="1" source="internet" target="ec2-icon" parent="1">
+          <mxCell as="geometry" />
+        </mxCell>
+
+        <!-- S3 → EC2 (API calls) -->
+        <mxCell id="e-s3-ec2" value="API Calls&#xa;VITE_API_URL" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#8C4FFF;strokeWidth=2;dashed=1;fontStyle=2;fontSize=10;" edge="1" source="s3-icon" target="springboot" parent="1">
+          <mxCell as="geometry" />
+        </mxCell>
+
+        <!-- GitHub → EC2 (git pull) -->
+        <mxCell id="e-gh-ec2" value="git pull&#xa;(deploy)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#24292e;strokeWidth=2;dashed=1;fontStyle=2;fontSize=10;" edge="1" source="github" target="ec2-icon" parent="1">
+          <mxCell as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════ -->
+        <!-- LEGEND -->
+        <!-- ═══════════════════════════════════════════════════ -->
+        <mxCell id="legend" value="Legend" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="310" y="820" width="100" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="leg1" value="Frontend (React/S3)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F2F6E8;strokeColor=#7AA116;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="310" y="855" width="150" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="leg2" value="Backend (Spring Boot/EC2)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="475" y="855" width="170" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="leg3" value="Database (MySQL)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff0f0;strokeColor=#C7131F;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="660" y="855" width="140" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="leg4" value="Security / IAM" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="815" y="855" width="120" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="leg5" value="VPC / Networking" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F4EEFF;strokeColor=#8C4FFF;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="950" y="855" width="130" height="30" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
