@@ -140,7 +140,7 @@ Resources:
   ECSSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: ECS tasks — allow HTTP inbound
+      GroupDescription: ECS tasks - allow HTTP inbound
       VpcId: !Ref VPC
       SecurityGroupIngress:
         - {IpProtocol: tcp, FromPort: 80,  ToPort: 80,  CidrIp: 0.0.0.0/0}
@@ -149,7 +149,7 @@ Resources:
   RDSSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: RDS — allow Postgres from ECS only
+      GroupDescription: RDS - allow Postgres from ECS only
       VpcId: !Ref VPC
       SecurityGroupIngress:
         - IpProtocol: tcp
@@ -160,7 +160,7 @@ Resources:
   CodeBuildSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: CodeBuild — outbound only
+      GroupDescription: CodeBuild - outbound only
       VpcId: !Ref VPC
 
   # ═══════════════════════════════════════════════════════════════
@@ -216,7 +216,7 @@ Resources:
       PubliclyAccessible: false
       DBSubnetGroupName: !Ref DBSubnetGroup
       VPCSecurityGroups: [!Ref RDSSecurityGroup]
-      BackupRetentionPeriod: 7
+      BackupRetentionPeriod: 0
       DeletionProtection: false
 
   # ═══════════════════════════════════════════════════════════════
@@ -386,7 +386,6 @@ Resources:
   ArtifactBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub "shalaconnect-artifacts-${AWS::AccountId}"
       LifecycleConfiguration:
         Rules:
           - Id: expire-old-artifacts
