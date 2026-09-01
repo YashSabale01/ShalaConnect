@@ -21,8 +21,8 @@ public class DynamicForm {
 
     private String description;
 
-    @Column(columnDefinition = "JSON")
-    private String fieldsJson; // JSON array of form fields
+    @Column(columnDefinition = "TEXT")
+    private String fieldsJson;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by")
