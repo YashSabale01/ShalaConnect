@@ -60,13 +60,13 @@ phases:
 
       # Create service if it doesn't exist, otherwise update it
       - |
-        SERVICE_STATUS=$(aws ecs describe-services --cluster shalaconnect-cluster --services shalaconnect-service --query 'services[0].status' --output text 2>/dev/null || echo "MISSING")
+        SERVICE_STATUS=$(aws ecs describe-services --cluster $ECS_CLUSTER --services $ECS_SERVICE --query 'services[0].status' --output text 2>/dev/null || echo "MISSING")
         if [ "$SERVICE_STATUS" = "ACTIVE" ]; then
-          aws ecs update-service --cluster shalaconnect-cluster --service shalaconnect-service --task-definition $TASK_DEF_ARN --force-new-deployment
+          aws ecs update-service --cluster $ECS_CLUSTER --service $ECS_SERVICE --task-definition $TASK_DEF_ARN --force-new-deployment
         else
           aws ecs create-service \
-            --cluster shalaconnect-cluster \
-            --service-name shalaconnect-service \
+            --cluster $ECS_CLUSTER \
+            --service-name $ECS_SERVICE \
             --task-definition $TASK_DEF_ARN \
             --desired-count 1 \
             --launch-type FARGATE \
