@@ -504,7 +504,6 @@ Resources:
     Properties:
       Name: shalaconnect-build
       ServiceRole: !GetAtt CodeBuildRole.Arn
-      BuildSpec: buildspec.yml
       Environment:
         Type: LINUX_CONTAINER
         ComputeType: BUILD_GENERAL1_MEDIUM
