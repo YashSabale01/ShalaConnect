@@ -443,7 +443,7 @@ Resources:
       ServiceRole: !GetAtt CodeBuildRole.Arn
       Environment:
         Type: LINUX_CONTAINER
-        ComputeType: BUILD_GENERAL1_MEDIUM
+        ComputeType: BUILD_GENERAL1_SMALL
         Image: aws/codebuild/standard:7.0
         PrivilegedMode: true          # required for docker build
         EnvironmentVariables:
