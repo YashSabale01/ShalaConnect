@@ -1,6 +1,7 @@
 package com.shalaconnect.dto.response;
 
 import com.shalaconnect.model.School;
+import com.shalaconnect.model.User;
 import lombok.*;
 import java.time.LocalDateTime;
 
@@ -24,6 +25,15 @@ public class SchoolResponse {
     private String schoolPhoto;
     private boolean active;
     private LocalDateTime createdAt;
+    private HeadmasterInfo headmaster;
+
+    @Data @Builder @NoArgsConstructor @AllArgsConstructor
+    public static class HeadmasterInfo {
+        private Long id;
+        private String name;
+        private String email;
+        private String phone;
+    }
 
     public static SchoolResponse from(School s) {
         return SchoolResponse.builder()
@@ -33,7 +43,13 @@ public class SchoolResponse {
             .email(s.getEmail()).totalStudents(s.getTotalStudents()).totalTeachers(s.getTotalTeachers())
             .topperName(s.getTopperName()).topperPercentage(s.getTopperPercentage())
             .topperClass(s.getTopperClass()).schoolPhoto(s.getSchoolPhoto())
-            .active(s.isActive()).createdAt(s.getCreatedAt()).build();
+            .active(s.isActive()).createdAt(s.getCreatedAt())
+            .headmaster(s.getStaff().stream()
+                .filter(u -> u.getRole() == User.Role.HEADMASTER && u.isActive())
+                .findFirst()
+                .map(u -> HeadmasterInfo.builder().id(u.getId()).name(u.getName()).email(u.getEmail()).phone(u.getPhone()).build())
+                .orElse(null))
+            .build();
     }
 
     @Data @Builder @NoArgsConstructor @AllArgsConstructor

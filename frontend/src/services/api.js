@@ -62,6 +62,7 @@ export const schoolApi = {
     return api.post(`/schools/${id}/photo`, fd, { headers: { 'Content-Type': 'multipart/form-data' } })
   },
   delete:      (id)      => api.delete(`/schools/${id}`),
+  removeHeadmaster: (id) => api.delete(`/schools/${id}/headmaster`),
 }
 
 // ─── Attendance ───────────────────────────────────────────────────────────────
@@ -134,5 +135,6 @@ export const userApi = {
   getAll:         ()   => api.get('/users'),
   getHeadmasters: ()   => api.get('/users/headmasters'),
   toggleActive:   (id) => api.patch(`/users/${id}/toggle-active`),
+  assignSchool:   (id, schoolId) => api.patch(`/users/${id}/assign-school`, { schoolId }),
   delete:         (id) => api.delete(`/users/${id}`),
 }

@@ -9,7 +9,7 @@ import EmptyState from '../../components/ui/EmptyState'
 import { TableSkeleton } from '../../components/ui/Skeleton'
 import {
   Building2, Plus, Search, Edit2, Trash2,
-  MapPin, Phone, Users, Eye, AlertCircle
+  MapPin, Phone, Users, Eye, AlertCircle, UserMinus
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import clsx from 'clsx'
@@ -20,6 +20,7 @@ export default function SchoolsPage() {
   const [showForm,    setShowForm]    = useState(false)
   const [editing,     setEditing]     = useState(null)
   const [deleting,    setDeleting]    = useState(null)
+  const [removingHM,  setRemovingHM]  = useState(null)
   const [submitting,  setSubmitting]  = useState(false)
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm()
@@ -62,6 +63,20 @@ export default function SchoolsPage() {
       refetch()
     } catch {
       toast.error('Failed to delete school')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleRemoveHeadmaster = async () => {
+    setSubmitting(true)
+    try {
+      await schoolApi.removeHeadmaster(removingHM.id)
+      toast.success('Headmaster removed from school')
+      setRemovingHM(null)
+      refetch()
+    } catch {
+      toast.error('Failed to remove headmaster')
     } finally {
       setSubmitting(false)
     }
@@ -110,6 +125,7 @@ export default function SchoolsPage() {
                   <th>School Name</th>
                   <th>UDISE Code</th>
                   <th>Location</th>
+                  <th>Headmaster</th>
                   <th>Students / Teachers</th>
                   <th>Actions</th>
                 </tr>
@@ -138,6 +154,25 @@ export default function SchoolsPage() {
                         <MapPin className="w-3 h-3 text-gray-400" />
                         <span>{[school.village, school.taluka].filter(Boolean).join(', ') || '—'}</span>
                       </div>
+                    </td>
+                    <td>
+                      {school.headmaster ? (
+                        <div className="flex items-center gap-2">
+                          <div>
+                            <div className="text-sm font-medium text-gray-800">{school.headmaster.name}</div>
+                            <div className="text-xs text-gray-400">{school.headmaster.email}</div>
+                          </div>
+                          <button
+                            onClick={() => setRemovingHM(school)}
+                            className="btn-ghost btn-sm p-1 text-red-400 hover:text-red-600 hover:bg-red-50"
+                            title="Remove Headmaster"
+                          >
+                            <UserMinus className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-gray-300 text-sm">—</span>
+                      )}
                     </td>
                     <td>
                       <div className="flex items-center gap-1 text-gray-600">
@@ -176,12 +211,16 @@ export default function SchoolsPage() {
                   <div className="flex gap-1">
                     <Link to={`/admin/schools/${school.id}`} className="btn-ghost btn-sm p-1.5"><Eye className="w-4 h-4" /></Link>
                     <button onClick={() => openEdit(school)} className="btn-ghost btn-sm p-1.5"><Edit2 className="w-4 h-4" /></button>
+                    {school.headmaster && (
+                      <button onClick={() => setRemovingHM(school)} className="btn-ghost btn-sm p-1.5 text-red-400" title="Remove Headmaster"><UserMinus className="w-4 h-4" /></button>
+                    )}
                     <button onClick={() => setDeleting(school)} className="btn-ghost btn-sm p-1.5 text-red-400"><Trash2 className="w-4 h-4" /></button>
                   </div>
                 </div>
                 <div className="flex items-center gap-4 text-sm text-gray-500">
                   <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{school.village || '—'}</span>
                   <span className="flex items-center gap-1"><Users className="w-3 h-3" />{school.totalStudents ?? 0}</span>
+                  {school.headmaster && <span className="text-xs text-blue-500">{school.headmaster.name}</span>}
                 </div>
               </div>
             ))}
@@ -273,6 +312,15 @@ export default function SchoolsPage() {
         loading={submitting}
         title="Delete School"
         description={`Are you sure you want to remove "${deleting?.name}"? This cannot be undone.`}
+      />
+
+      <ConfirmDialog
+        open={!!removingHM}
+        onClose={() => setRemovingHM(null)}
+        onConfirm={handleRemoveHeadmaster}
+        loading={submitting}
+        title="Remove Headmaster"
+        description={`Remove "${removingHM?.headmaster?.name}" as headmaster of "${removingHM?.name}"?`}
       />
     </div>
   )

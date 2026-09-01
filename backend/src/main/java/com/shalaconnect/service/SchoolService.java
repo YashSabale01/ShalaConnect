@@ -13,4 +13,5 @@ public interface SchoolService {
     SchoolResponse uploadSchoolPhoto(Long id, MultipartFile file);
     void deleteSchool(Long id);
     List<SchoolResponse> getActiveSchools();
+    SchoolResponse removeHeadmaster(Long schoolId);
 }

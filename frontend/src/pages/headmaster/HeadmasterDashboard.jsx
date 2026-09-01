@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { attendanceApi, grApi, meetingApi, formApi } from '../../services/api'
+import { attendanceApi, grApi, meetingApi, formApi, eventApi } from '../../services/api'
 import StatCard from '../../components/ui/StatCard'
 import { CardSkeleton } from '../../components/ui/Skeleton'
 import {
   CalendarCheck2, FileText, CalendarDays, ClipboardList,
-  CheckCircle2, Clock, AlertCircle, TrendingUp, ArrowRight
+  CheckCircle2, Clock, AlertCircle, TrendingUp, ArrowRight, BookOpen
 } from 'lucide-react'
 import { format } from 'date-fns'
 import clsx from 'clsx'
@@ -17,6 +17,7 @@ export default function HeadmasterDashboard() {
   const [grDocs,     setGrDocs]     = useState([])
   const [meetings,   setMeetings]   = useState([])
   const [forms,      setForms]      = useState([])
+  const [events,     setEvents]     = useState([])
   const [loading,    setLoading]    = useState(true)
 
   useEffect(() => {
@@ -25,11 +26,13 @@ export default function HeadmasterDashboard() {
       grApi.getAll(),
       meetingApi.getUpcoming(),
       formApi.getAll(),
-    ]).then(([att, gr, mtg, frm]) => {
+      eventApi.getAll(),
+    ]).then(([att, gr, mtg, frm, evt]) => {
       setAttendance(att.data.data || [])
       setGrDocs(gr.data.data || [])
       setMeetings(mtg.data.data || [])
       setForms(frm.data.data || [])
+      setEvents(evt.data.data || [])
     }).finally(() => setLoading(false))
   }, [user])
 
@@ -112,8 +115,8 @@ export default function HeadmasterDashboard() {
           color={todaySubmitted ? 'green' : 'orange'} />
         <StatCard icon={FileText} label="Unread GRs"
           value={unreadGr} sub="Documents to review" color="purple" />
-        <StatCard icon={ClipboardList} label="Pending Forms"
-          value={pendingForms} sub="Need your response" color="red" />
+        <StatCard icon={BookOpen} label="Total Events"
+          value={events.length} sub="School events" color="teal" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

@@ -207,6 +207,7 @@ export default function AdminDashboard() {
           <div className="space-y-2">
             {[
               { to: '/admin/schools', label: 'Add New School', icon: Building2, color: 'text-blue-600 bg-blue-50' },
+              { to: '/admin/users', label: 'Add Headmaster', icon: Users, color: 'text-indigo-600 bg-indigo-50' },
               { to: '/admin/gr-documents', label: 'Upload GR Document', icon: FileText, color: 'text-green-600 bg-green-50' },
               { to: '/admin/meetings', label: 'Schedule Meeting', icon: CalendarDays, color: 'text-purple-600 bg-purple-50' },
               { to: '/admin/forms', label: 'Create Form', icon: AlertCircle, color: 'text-orange-600 bg-orange-50' },

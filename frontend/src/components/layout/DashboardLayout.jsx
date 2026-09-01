@@ -99,7 +99,9 @@ export default function DashboardLayout({ role }) {
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-sm font-medium text-gray-900 truncate">{user?.name}</div>
-            <div className="text-xs text-gray-400 truncate">{user?.email}</div>
+            <div className="text-xs text-gray-400 truncate">
+              {role === 'HEADMASTER' && user?.school?.name ? user.school.name : user?.email}
+            </div>
           </div>
         </div>
         <button

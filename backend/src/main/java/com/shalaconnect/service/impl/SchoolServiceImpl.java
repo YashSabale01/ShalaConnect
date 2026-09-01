@@ -6,6 +6,7 @@ import com.shalaconnect.exception.BadRequestException;
 import com.shalaconnect.exception.ResourceNotFoundException;
 import com.shalaconnect.model.School;
 import com.shalaconnect.repository.SchoolRepository;
+import com.shalaconnect.repository.UserRepository;
 import com.shalaconnect.service.SchoolService;
 import com.shalaconnect.util.FileStorageService;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,7 @@ import java.util.stream.Collectors;
 public class SchoolServiceImpl implements SchoolService {
 
     private final SchoolRepository schoolRepository;
+    private final UserRepository userRepository;
     private final FileStorageService fileStorageService;
 
     @Override
@@ -114,6 +116,16 @@ public class SchoolServiceImpl implements SchoolService {
         return schoolRepository.findByActiveTrue().stream()
             .map(SchoolResponse::from)
             .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public SchoolResponse removeHeadmaster(Long schoolId) {
+        findSchoolById(schoolId); // validate school exists
+        userRepository.findBySchoolId(schoolId).stream()
+            .filter(u -> u.getRole() == com.shalaconnect.model.User.Role.HEADMASTER)
+            .forEach(u -> { u.setSchool(null); userRepository.save(u); });
+        return SchoolResponse.from(findSchoolById(schoolId));
     }
 
     private School findSchoolById(Long id) {

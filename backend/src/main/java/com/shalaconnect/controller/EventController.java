@@ -33,7 +33,7 @@ public class EventController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','HEADMASTER')")
     public ResponseEntity<ApiResponse<EventResponse>> createEvent(
             @Valid @RequestBody EventRequest request,
             @AuthenticationPrincipal UserDetails userDetails) {
@@ -42,7 +42,7 @@ public class EventController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','HEADMASTER')")
     public ResponseEntity<ApiResponse<EventResponse>> updateEvent(
             @PathVariable Long id,
             @Valid @RequestBody EventRequest request) {

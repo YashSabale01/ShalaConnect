@@ -53,6 +53,12 @@ public class SchoolController {
         return ResponseEntity.ok(ApiResponse.success("Photo uploaded", schoolService.uploadSchoolPhoto(id, file)));
     }
 
+    @DeleteMapping("/{id}/headmaster")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<SchoolResponse>> removeHeadmaster(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.success("Headmaster removed", schoolService.removeHeadmaster(id)));
+    }
+
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> deleteSchool(@PathVariable Long id) {

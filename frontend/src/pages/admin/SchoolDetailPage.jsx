@@ -5,7 +5,7 @@ import { useApi } from '../../hooks/useApi'
 import { CardSkeleton } from '../../components/ui/Skeleton'
 import {
   ArrowLeft, Building2, MapPin, Phone, Mail, Users,
-  Trophy, Upload, CalendarCheck2, TrendingUp
+  Trophy, Upload, CalendarCheck2, TrendingUp, UserCheck, UserX
 } from 'lucide-react'
 import {
   LineChart, Line, XAxis, YAxis, Tooltip,
@@ -93,6 +93,27 @@ export default function SchoolDetailPage() {
           <p className="text-sm font-mono text-gray-400 bg-gray-100 px-2 py-0.5 rounded inline-block mb-4">
             UDISE: {school.udiseCode}
           </p>
+
+          {/* Headmaster info */}
+          <div className={clsx(
+            'flex items-center gap-3 p-3 rounded-xl mb-4',
+            school.headmaster ? 'bg-blue-50 border border-blue-100' : 'bg-gray-50 border border-gray-100'
+          )}>
+            {school.headmaster
+              ? <UserCheck className="w-4 h-4 text-blue-500 flex-shrink-0" />
+              : <UserX className="w-4 h-4 text-gray-400 flex-shrink-0" />
+            }
+            <div className="min-w-0 flex-1">
+              {school.headmaster ? (
+                <>
+                  <p className="text-sm font-medium text-gray-900 truncate">{school.headmaster.name}</p>
+                  <p className="text-xs text-gray-500 truncate">{school.headmaster.email}</p>
+                </>
+              ) : (
+                <p className="text-sm text-gray-400">No headmaster assigned</p>
+              )}
+            </div>
+          </div>
 
           <div className="space-y-3 text-sm">
             {school.village && (
