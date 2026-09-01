@@ -1,225 +1,122 @@
-# 🏫 ShalaConnect — शाळाकनेक्ट
+# ShalaConnect
 
-> A production-ready school management platform for Cluster Heads (केंद्रप्रमुख) managing multiple rural schools in Maharashtra.
-
----
-
-## 📸 Features
-
-| Module | Admin (Cluster Head) | Headmaster |
-|--------|----------------------|------------|
-| **Dashboard** | Attendance overview, charts, alerts | Personal dashboard, pending tasks |
-| **Schools** | Full CRUD, photo upload, topper info | View own school info |
-| **Attendance** | View all schools, daily submission chart | Submit & view own school attendance |
-| **GR Documents** | Upload PDFs, track "seen by" | View & acknowledge documents |
-| **Meetings** | Schedule online/offline, notify all | View, acknowledge meetings |
-| **Events** | Create events, upload photos & reports | View events & photos |
-| **Forms** | Build dynamic forms, export to Excel | Fill assigned forms |
-| **Users** | Manage headmaster accounts | — |
-| **Notifications** | — | Real-time bell, unread count |
-| **Public Portal** | — | Public school listing + attendance chart |
+School Management Platform for Cluster Heads — Spring Boot + React + PostgreSQL.
 
 ---
 
-## 🏗️ Tech Stack
-
-- **Backend:** Spring Boot 3.2, Spring Security (JWT), Spring Data JPA, MySQL 8, Apache POI
-- **Frontend:** React 18, Vite, Tailwind CSS, React Router v6, React Hook Form, Recharts, Axios
-- **DevOps:** Docker, Docker Compose, Nginx
-
----
-
-## 🚀 Quick Start (Local Development)
-
-### Prerequisites
-- Java 21+
-- Node.js 20+
-- MySQL 8.0+
-- Maven 3.9+
-
----
-
-### 1. Clone the Repository
-```bash
-git clone https://github.com/your-username/ShalaConnect.git
-cd ShalaConnect
-```
-
----
-
-### 2. Database Setup
-
-```sql
-CREATE DATABASE school_management CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-```
-
----
-
-### 3. Backend Setup
+## Local Development
 
 ```bash
-cd backend
-
-# Copy environment config
 cp .env.example .env
+docker-compose up -d --build
 
-# Edit .env and set your MySQL credentials
-# DB_PASSWORD=your_mysql_password
-
-# Run the application
-./mvnw spring-boot:run
+# Frontend: http://localhost
+# Backend:  http://localhost:8080
+# Login:    admin@shalaconnect.in / Admin@123
 ```
-
-The backend starts on **http://localhost:7070**
-
-On first run, a default admin account is created:
-- **Email:** `admin@shalaconnect.in`
-- **Password:** `Admin@123`
-
-> ⚠️ Change this password immediately after first login!
 
 ---
 
-### 4. Frontend Setup
+## AWS Deployment — 100% IaC (CloudFormation + CodePipeline)
+
+**No GitHub Actions. No manual AWS steps after setup.**  
+One CloudFormation stack provisions everything.  
+Every `git push` to `main` automatically builds and deploys via CodePipeline.
+
+---
+
+### Architecture
+
+```
+git push main
+    │
+    ▼
+CodePipeline (AWS)
+    ├── Stage 1: Source  — pulls code from GitHub via CodeStar Connection
+    ├── Stage 2: Build   — CodeBuild runs buildspec.yml
+    │             builds backend  Docker image → pushes to ECR
+    │             builds frontend Docker image → pushes to ECR
+    │             writes imagedefinitions.json
+    └── Stage 3: Deploy  — updates ECS service with new image tags
+
+ECS Fargate Task
+    ├── frontend container (Nginx :80) → proxies /api/* to localhost:8080
+    └── backend  container (Spring :8080) → reads secrets from SSM → RDS
+```
+
+---
+
+### IaC Files
+
+| File | Purpose |
+|------|---------|
+| `aws/cloudformation.yml` | Everything — VPC, RDS, ECR, ECS, CodeBuild, CodePipeline, IAM, SSM |
+| `buildspec.yml` | CodeBuild instructions — builds both Docker images |
+
+---
+
+### One-time Setup (do this once, never again)
+
+#### Step 1 — Create a GitHub Connection in AWS Console
+
+This is the only thing you cannot do via CloudFormation — GitHub OAuth requires a browser click.
+
+1. Go to AWS Console → **Developer Tools → Connections**  
+   Direct link: `https://ap-south-1.console.aws.amazon.com/codesuite/settings/connections`
+2. Click **Create connection** → choose **GitHub**
+3. Name it `shalaconnect-github` → click **Connect to GitHub** → authorize
+4. Copy the **Connection ARN** — looks like:  
+   `arn:aws:codestar-connections:ap-south-1:123456789:connection/xxxxxxxx`
+
+#### Step 2 — Deploy the CloudFormation stack
+
+Run this one command (replace the values):
 
 ```bash
-cd frontend
-
-# Install dependencies
-npm install
-
-# Copy environment file
-cp .env.example .env
-
-# Start development server
-npm run dev
+aws cloudformation deploy \
+  --stack-name shalaconnect \
+  --template-file aws/cloudformation.yml \
+  --capabilities CAPABILITY_NAMED_IAM \
+  --region ap-south-1 \
+  --parameter-overrides \
+    GitHubOwner=YashSabale01 \
+    GitHubRepo=ShalaConnect \
+    GitHubBranch=main \
+    GitHubConnectionArn=arn:aws:codestar-connections:ap-south-1:ACCOUNT_ID:connection/XXXXXXXX \
+    DBPassword=MyRdsPass123! \
+    JwtSecret=shalaconnect_prod_jwt_secret_32_chars_minimum!! \
+    AdminEmail=admin@shalaconnect.in \
+    AdminPassword=Admin@123
 ```
 
-The frontend starts on **http://localhost:5173**
+This takes ~15 minutes (RDS provisioning).  
+When it completes, CodePipeline automatically runs the first build and deploy.
 
 ---
 
-## 🐳 Docker Setup (Recommended)
-
-Run the entire stack with one command:
+### Every future deploy
 
 ```bash
-# From the root directory
-docker-compose up -d
+git push origin main
 ```
 
-- Frontend: **http://localhost:80**
-- Backend API: **http://localhost:7070**
-- MySQL: **localhost:3306**
+CodePipeline detects the push and runs automatically. Done.
 
 ---
 
-## 📁 Project Structure
+### Monitor
 
-```
-ShalaConnect/
-├── backend/                          # Spring Boot API
-│   └── src/main/java/com/shalaconnect/
-│       ├── controller/               # REST controllers
-│       ├── service/                  # Business logic
-│       │   └── impl/                 # Service implementations
-│       ├── repository/               # Spring Data JPA repos
-│       ├── model/                    # JPA entities
-│       ├── dto/
-│       │   ├── request/              # Request DTOs
-│       │   └── response/             # Response DTOs
-│       ├── security/                 # JWT filter & util
-│       ├── config/                   # Security, Web, App config
-│       └── exception/                # Global exception handler
-│
-├── frontend/                         # React SPA
-│   └── src/
-│       ├── components/
-│       │   ├── layout/               # DashboardLayout, ProtectedRoute
-│       │   └── ui/                   # Modal, StatCard, Skeleton, etc.
-│       ├── pages/
-│       │   ├── auth/                 # Login page
-│       │   ├── admin/                # Admin portal pages
-│       │   ├── headmaster/           # Headmaster portal pages
-│       │   └── public/               # Public school portal
-│       ├── services/                 # Axios API layer
-│       ├── hooks/                    # useApi, useMutation
-│       ├── context/                  # AuthContext
-│       └── App.jsx                   # Router setup
-│
-├── database/
-│   └── init.sql                      # DB initialization script
-├── docker-compose.yml
-└── README.md
-```
+- **Pipeline**: AWS Console → CodePipeline → `shalaconnect-pipeline`
+- **Build logs**: AWS Console → CodeBuild → `shalaconnect-build`
+- **App logs**: AWS Console → CloudWatch → `/ecs/shalaconnect-backend`
+- **App URL**: ECS Console → Clusters → `shalaconnect-cluster` → Tasks → task public IP
 
 ---
 
-## 🔑 API Endpoints
+### Notes
 
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| POST | `/api/auth/login` | Public | Login |
-| GET | `/api/auth/me` | Any | Get current user |
-| POST | `/api/auth/register-headmaster` | Admin | Create headmaster |
-| GET | `/api/schools` | Public | List all schools |
-| POST | `/api/schools` | Admin | Create school |
-| GET | `/api/attendance/summary` | Admin | Today's summary |
-| POST | `/api/attendance` | Headmaster | Submit attendance |
-| POST | `/api/gr` | Admin | Upload GR document |
-| POST | `/api/gr/{id}/seen` | Any | Mark GR as seen |
-| POST | `/api/meetings` | Admin | Schedule meeting |
-| POST | `/api/meetings/{id}/acknowledge` | Headmaster | Acknowledge |
-| POST | `/api/forms` | Admin | Create form |
-| POST | `/api/forms/{id}/respond` | Headmaster | Submit response |
-| GET | `/api/forms/{id}/export` | Admin | Export to Excel |
-
----
-
-## 🎨 Design System
-
-- **Primary:** Blue (`#2563eb` — `#1e3a8a`)
-- **Success:** Green
-- **Warning:** Amber/Orange
-- **Danger:** Red
-- **Typography:** Inter (Google Fonts)
-- **Component library:** Tailwind CSS + custom `.card`, `.btn-*`, `.badge-*`, `.input` utilities
-
----
-
-## 🔐 Security
-
-- JWT-based stateless authentication (7-day expiry)
-- Role-based access control: `ADMIN` and `HEADMASTER` roles
-- Password hashing with BCrypt
-- CORS configured per environment
-- Input validation with Hibernate Validator on all endpoints
-
----
-
-## 📋 Development Notes
-
-- **Hot reload:** Both frontend (Vite HMR) and backend (Spring DevTools) support hot reload
-- **File uploads:** Stored in `uploads/` directory, served as static files
-- **Excel export:** Apache POI generates `.xlsx` from form responses
-- **Notifications:** Headmasters are auto-notified on GR uploads, meeting schedules, and form assignments
-
----
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/my-feature`
-3. Commit changes: `git commit -m 'Add my feature'`
-4. Push: `git push origin feature/my-feature`
-5. Open a Pull Request
-
----
-
-## 📄 License
-
-MIT License — see [LICENSE](LICENSE) for details.
-
----
-
-Made with ❤️ for Maharashtra's rural education system.
+- RDS is in private subnets — not publicly accessible
+- All secrets live in SSM Parameter Store — never in code
+- ECR keeps last 10 images, older ones auto-expire
+- ECS task public IP changes on each deploy — add an ALB for a stable URL
+- File uploads live in `/app/uploads` inside the container — mount EFS for persistence

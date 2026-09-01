@@ -2,8 +2,11 @@
 
 # Environment files — NEVER commit these
 .env
+.env.local
 backend/.env
 frontend/.env
+frontend/.env.local
+frontend/.env.production
 
 # Build outputs
 backend/target/
@@ -27,7 +30,9 @@ Thumbs.db
 
 # Local scripts
 *.bat
-frontend/.env.production
+
+# Architecture files
+architecture.drawio
 
 # Logs
 *.log

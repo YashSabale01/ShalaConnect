@@ -1,0 +1,612 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: ShalaConnect - Complete Infrastructure + CI/CD Pipeline (single stack)
+
+# ─────────────────────────────────────────────────────────────────
+# Parameters — the ONLY inputs you provide when creating the stack
+# ─────────────────────────────────────────────────────────────────
+Parameters:
+
+  GitHubOwner:
+    Type: String
+    Description: GitHub username or org (e.g. YashSabale01)
+
+  GitHubRepo:
+    Type: String
+    Default: ShalaConnect
+    Description: GitHub repository name
+
+  GitHubBranch:
+    Type: String
+    Default: main
+    Description: Branch to deploy from
+
+  GitHubConnectionArn:
+    Type: String
+    Description: >
+      ARN of the AWS CodeStar Connection to GitHub.
+      Create once in Console → Developer Tools → Connections → Create connection (GitHub).
+      Must be in AVAILABLE status before creating this stack.
+
+  DBPassword:
+    Type: String
+    NoEcho: true
+    MinLength: 8
+    Description: RDS master password (min 8 chars)
+
+  JwtSecret:
+    Type: String
+    NoEcho: true
+    MinLength: 32
+    Description: JWT signing secret (min 32 chars)
+
+  AdminEmail:
+    Type: String
+    Default: admin@shalaconnect.in
+
+  AdminPassword:
+    Type: String
+    NoEcho: true
+    MinLength: 8
+
+# ─────────────────────────────────────────────────────────────────
+# Resources
+# ─────────────────────────────────────────────────────────────────
+Resources:
+
+  # ═══════════════════════════════════════════════════════════════
+  # NETWORKING
+  # ═══════════════════════════════════════════════════════════════
+
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags: [{Key: Name, Value: shalaconnect-vpc}]
+
+  IGW:
+    Type: AWS::EC2::InternetGateway
+
+  IGWAttach:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref IGW
+
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      MapPublicIpOnLaunch: true
+      Tags: [{Key: Name, Value: shalaconnect-public-1}]
+
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.2.0/24
+      AvailabilityZone: !Select [1, !GetAZs ""]
+      MapPublicIpOnLaunch: true
+      Tags: [{Key: Name, Value: shalaconnect-public-2}]
+
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.3.0/24
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      Tags: [{Key: Name, Value: shalaconnect-private-1}]
+
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.4.0/24
+      AvailabilityZone: !Select [1, !GetAZs ""]
+      Tags: [{Key: Name, Value: shalaconnect-private-2}]
+
+  PublicRT:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: IGWAttach
+    Properties:
+      RouteTableId: !Ref PublicRT
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref IGW
+
+  PubSub1Assoc:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet1
+      RouteTableId: !Ref PublicRT
+
+  PubSub2Assoc:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet2
+      RouteTableId: !Ref PublicRT
+
+  # ═══════════════════════════════════════════════════════════════
+  # SECURITY GROUPS
+  # ═══════════════════════════════════════════════════════════════
+
+  ECSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: ECS tasks — allow HTTP inbound
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - {IpProtocol: tcp, FromPort: 80,  ToPort: 80,  CidrIp: 0.0.0.0/0}
+        - {IpProtocol: tcp, FromPort: 443, ToPort: 443, CidrIp: 0.0.0.0/0}
+
+  RDSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: RDS — allow Postgres from ECS only
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId: !Ref ECSSecurityGroup
+
+  CodeBuildSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: CodeBuild — outbound only
+      VpcId: !Ref VPC
+
+  # ═══════════════════════════════════════════════════════════════
+  # ECR REPOSITORIES
+  # ═══════════════════════════════════════════════════════════════
+
+  ECRBackend:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: shalaconnect-backend
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      LifecyclePolicy:
+        LifecyclePolicyText: >
+          {"rules":[{"rulePriority":1,"description":"Keep last 10","selection":{"tagStatus":"any","countType":"imageCountMoreThan","countNumber":10},"action":{"type":"expire"}}]}
+
+  ECRFrontend:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: shalaconnect-frontend
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      LifecyclePolicy:
+        LifecyclePolicyText: >
+          {"rules":[{"rulePriority":1,"description":"Keep last 10","selection":{"tagStatus":"any","countType":"imageCountMoreThan","countNumber":10},"action":{"type":"expire"}}]}
+
+  # ═══════════════════════════════════════════════════════════════
+  # RDS POSTGRESQL
+  # ═══════════════════════════════════════════════════════════════
+
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: ShalaConnect RDS subnets
+      SubnetIds: [!Ref PrivateSubnet1, !Ref PrivateSubnet2]
+
+  RDS:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Snapshot
+    UpdateReplacePolicy: Snapshot
+    Properties:
+      DBInstanceIdentifier: shalaconnect-db
+      DBInstanceClass: db.t3.micro
+      Engine: postgres
+      EngineVersion: "16"
+      MasterUsername: postgres
+      MasterUserPassword: !Ref DBPassword
+      DBName: school_management
+      AllocatedStorage: "20"
+      StorageType: gp2
+      StorageEncrypted: true
+      MultiAZ: false
+      PubliclyAccessible: false
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      VPCSecurityGroups: [!Ref RDSSecurityGroup]
+      BackupRetentionPeriod: 7
+      DeletionProtection: false
+
+  # ═══════════════════════════════════════════════════════════════
+  # SSM PARAMETERS  (all secrets — never in code)
+  # ═══════════════════════════════════════════════════════════════
+
+  SSMDbUrl:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /shalaconnect/DB_URL
+      Type: String
+      Value: !Sub "jdbc:postgresql://${RDS.Endpoint.Address}:5432/school_management"
+
+  SSMDbUsername:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /shalaconnect/DB_USERNAME
+      Type: String
+      Value: postgres
+
+  SSMDbPassword:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /shalaconnect/DB_PASSWORD
+      Type: String
+      Value: !Ref DBPassword
+
+  SSMJwtSecret:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /shalaconnect/JWT_SECRET
+      Type: String
+      Value: !Ref JwtSecret
+
+  SSMAdminEmail:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /shalaconnect/ADMIN_EMAIL
+      Type: String
+      Value: !Ref AdminEmail
+
+  SSMAdminPassword:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /shalaconnect/ADMIN_PASSWORD
+      Type: String
+      Value: !Ref AdminPassword
+
+  SSMAllowedOrigins:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /shalaconnect/ALLOWED_ORIGINS
+      Type: String
+      Value: http://localhost
+
+  # ═══════════════════════════════════════════════════════════════
+  # IAM ROLES
+  # ═══════════════════════════════════════════════════════════════
+
+  # ECS task role — reads SSM secrets, writes logs
+  ECSExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: shalaconnect-ecs-execution-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: {Service: ecs-tasks.amazonaws.com}
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+      Policies:
+        - PolicyName: ssm-secrets
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: [ssm:GetParameter, ssm:GetParameters, ssm:GetParametersByPath]
+                Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/shalaconnect/*"
+              - Effect: Allow
+                Action: [logs:CreateLogGroup, logs:CreateLogStream, logs:PutLogEvents]
+                Resource: "*"
+
+  # CodeBuild role — ECR push, SSM read, S3 artifacts, logs
+  CodeBuildRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: shalaconnect-codebuild-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: {Service: codebuild.amazonaws.com}
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: codebuild-policy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: [ecr:GetAuthorizationToken]
+                Resource: "*"
+              - Effect: Allow
+                Action: [ecr:BatchCheckLayerAvailability, ecr:CompleteLayerUpload,
+                         ecr:InitiateLayerUpload, ecr:PutImage, ecr:UploadLayerPart,
+                         ecr:BatchGetImage, ecr:GetDownloadUrlForLayer]
+                Resource:
+                  - !GetAtt ECRBackend.Arn
+                  - !GetAtt ECRFrontend.Arn
+              - Effect: Allow
+                Action: [s3:GetObject, s3:PutObject, s3:GetBucketAcl, s3:GetBucketLocation]
+                Resource:
+                  - !Sub "arn:aws:s3:::${ArtifactBucket}"
+                  - !Sub "arn:aws:s3:::${ArtifactBucket}/*"
+              - Effect: Allow
+                Action: [logs:CreateLogGroup, logs:CreateLogStream, logs:PutLogEvents]
+                Resource: "*"
+              - Effect: Allow
+                Action: [ec2:CreateNetworkInterface, ec2:DescribeDhcpOptions,
+                         ec2:DescribeNetworkInterfaces, ec2:DeleteNetworkInterface,
+                         ec2:DescribeSubnets, ec2:DescribeSecurityGroups, ec2:DescribeVpcs,
+                         ec2:CreateNetworkInterfacePermission]
+                Resource: "*"
+
+  # CodePipeline role — S3, CodeBuild, ECS, CodeStar connections
+  CodePipelineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: shalaconnect-codepipeline-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: {Service: codepipeline.amazonaws.com}
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: codepipeline-policy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: [s3:GetObject, s3:PutObject, s3:GetBucketAcl,
+                         s3:GetBucketLocation, s3:ListBucket]
+                Resource:
+                  - !Sub "arn:aws:s3:::${ArtifactBucket}"
+                  - !Sub "arn:aws:s3:::${ArtifactBucket}/*"
+              - Effect: Allow
+                Action: [codebuild:BatchGetBuilds, codebuild:StartBuild]
+                Resource: !GetAtt CodeBuildProject.Arn
+              - Effect: Allow
+                Action: [ecs:DescribeServices, ecs:DescribeTaskDefinition,
+                         ecs:DescribeTasks, ecs:ListTasks,
+                         ecs:RegisterTaskDefinition, ecs:UpdateService]
+                Resource: "*"
+              - Effect: Allow
+                Action: iam:PassRole
+                Resource: !GetAtt ECSExecutionRole.Arn
+              - Effect: Allow
+                Action: codestar-connections:UseConnection
+                Resource: !Ref GitHubConnectionArn
+
+  # ═══════════════════════════════════════════════════════════════
+  # S3 ARTIFACT BUCKET  (CodePipeline staging)
+  # ═══════════════════════════════════════════════════════════════
+
+  ArtifactBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "shalaconnect-artifacts-${AWS::AccountId}"
+      LifecycleConfiguration:
+        Rules:
+          - Id: expire-old-artifacts
+            Status: Enabled
+            ExpirationInDays: 30
+
+  # ═══════════════════════════════════════════════════════════════
+  # CLOUDWATCH LOG GROUPS
+  # ═══════════════════════════════════════════════════════════════
+
+  LogGroupBackend:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /ecs/shalaconnect-backend
+      RetentionInDays: 30
+
+  LogGroupFrontend:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /ecs/shalaconnect-frontend
+      RetentionInDays: 30
+
+  LogGroupCodeBuild:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /codebuild/shalaconnect
+      RetentionInDays: 14
+
+  # ═══════════════════════════════════════════════════════════════
+  # ECS
+  # ═══════════════════════════════════════════════════════════════
+
+  ECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: shalaconnect-cluster
+      ClusterSettings:
+        - {Name: containerInsights, Value: enabled}
+
+  ECSTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    DependsOn: [LogGroupBackend, LogGroupFrontend]
+    Properties:
+      Family: shalaconnect
+      NetworkMode: awsvpc
+      RequiresCompatibilities: [FARGATE]
+      Cpu: "1024"
+      Memory: "2048"
+      ExecutionRoleArn: !GetAtt ECSExecutionRole.Arn
+      TaskRoleArn: !GetAtt ECSExecutionRole.Arn
+      ContainerDefinitions:
+        - Name: backend
+          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/shalaconnect-backend:latest"
+          PortMappings: [{ContainerPort: 8080, Protocol: tcp}]
+          Essential: true
+          Environment:
+            - {Name: UPLOAD_DIR,     Value: uploads}
+            - {Name: JWT_EXPIRATION, Value: "604800000"}
+          Secrets:
+            - {Name: DB_URL,          ValueFrom: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/shalaconnect/DB_URL"}
+            - {Name: DB_USERNAME,     ValueFrom: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/shalaconnect/DB_USERNAME"}
+            - {Name: DB_PASSWORD,     ValueFrom: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/shalaconnect/DB_PASSWORD"}
+            - {Name: JWT_SECRET,      ValueFrom: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/shalaconnect/JWT_SECRET"}
+            - {Name: ADMIN_EMAIL,     ValueFrom: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/shalaconnect/ADMIN_EMAIL"}
+            - {Name: ADMIN_PASSWORD,  ValueFrom: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/shalaconnect/ADMIN_PASSWORD"}
+            - {Name: ALLOWED_ORIGINS, ValueFrom: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/shalaconnect/ALLOWED_ORIGINS"}
+          HealthCheck:
+            Command: [CMD-SHELL, "wget -qO- http://localhost:8080/api/health || exit 1"]
+            Interval: 30
+            Timeout: 10
+            Retries: 3
+            StartPeriod: 60
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: /ecs/shalaconnect-backend
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: ecs
+
+        - Name: frontend
+          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/shalaconnect-frontend:latest"
+          PortMappings: [{ContainerPort: 80, Protocol: tcp}]
+          Essential: true
+          DependsOn: [{ContainerName: backend, Condition: HEALTHY}]
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: /ecs/shalaconnect-frontend
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: ecs
+
+  ECSService:
+    Type: AWS::ECS::Service
+    DependsOn: [LogGroupBackend, LogGroupFrontend]
+    Properties:
+      ServiceName: shalaconnect-service
+      Cluster: !Ref ECSCluster
+      TaskDefinition: !Ref ECSTaskDefinition
+      DesiredCount: 1
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          Subnets: [!Ref PublicSubnet1, !Ref PublicSubnet2]
+          SecurityGroups: [!Ref ECSSecurityGroup]
+          AssignPublicIp: ENABLED
+      DeploymentConfiguration:
+        MinimumHealthyPercent: 0
+        MaximumPercent: 200
+
+  # ═══════════════════════════════════════════════════════════════
+  # CODEBUILD  — builds both Docker images from root buildspec.yml
+  # ═══════════════════════════════════════════════════════════════
+
+  CodeBuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: shalaconnect-build
+      ServiceRole: !GetAtt CodeBuildRole.Arn
+      BuildSpec: buildspec.yml
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_MEDIUM
+        Image: aws/codebuild/standard:7.0
+        PrivilegedMode: true          # required for docker build
+        EnvironmentVariables:
+          - {Name: AWS_REGION,       Value: !Ref AWS::Region}
+          - {Name: ECR_REGISTRY,     Value: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com"}
+          - {Name: ECR_BACKEND_URI,  Value: !GetAtt ECRBackend.RepositoryUri}
+          - {Name: ECR_FRONTEND_URI, Value: !GetAtt ECRFrontend.RepositoryUri}
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: buildspec.yml
+      Artifacts:
+        Type: CODEPIPELINE
+      LogsConfig:
+        CloudWatchLogs:
+          Status: ENABLED
+          GroupName: /codebuild/shalaconnect
+
+  # ═══════════════════════════════════════════════════════════════
+  # CODEPIPELINE  — Source (GitHub) → Build (CodeBuild) → Deploy (ECS)
+  # ═══════════════════════════════════════════════════════════════
+
+  Pipeline:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      Name: shalaconnect-pipeline
+      RoleArn: !GetAtt CodePipelineRole.Arn
+      ArtifactStore:
+        Type: S3
+        Location: !Ref ArtifactBucket
+      Stages:
+
+        # Stage 1 — pull source from GitHub on every push to branch
+        - Name: Source
+          Actions:
+            - Name: GitHub
+              ActionTypeId:
+                Category: Source
+                Owner: AWS
+                Provider: CodeStarSourceConnection
+                Version: "1"
+              Configuration:
+                ConnectionArn: !Ref GitHubConnectionArn
+                FullRepositoryId: !Sub "${GitHubOwner}/${GitHubRepo}"
+                BranchName: !Ref GitHubBranch
+                OutputArtifactFormat: CODE_ZIP
+                DetectChanges: true
+              OutputArtifacts:
+                - Name: SourceArtifact
+
+        # Stage 2 — build both Docker images, push to ECR
+        - Name: Build
+          Actions:
+            - Name: BuildImages
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: "1"
+              Configuration:
+                ProjectName: !Ref CodeBuildProject
+              InputArtifacts:
+                - Name: SourceArtifact
+              OutputArtifacts:
+                - Name: BuildArtifact
+
+        # Stage 3 — deploy new images to ECS Fargate
+        - Name: Deploy
+          Actions:
+            - Name: DeployToECS
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: ECS
+                Version: "1"
+              Configuration:
+                ClusterName: !Ref ECSCluster
+                ServiceName: shalaconnect-service
+                FileName: imagedefinitions.json
+              InputArtifacts:
+                - Name: BuildArtifact
+
+# ─────────────────────────────────────────────────────────────────
+# Outputs
+# ─────────────────────────────────────────────────────────────────
+Outputs:
+
+  PipelineURL:
+    Description: CodePipeline console URL
+    Value: !Sub "https://${AWS::Region}.console.aws.amazon.com/codesuite/codepipeline/pipelines/shalaconnect-pipeline/view"
+
+  ECRBackendURI:
+    Value: !GetAtt ECRBackend.RepositoryUri
+
+  ECRFrontendURI:
+    Value: !GetAtt ECRFrontend.RepositoryUri
+
+  ECSCluster:
+    Value: !Ref ECSCluster
+
+  RDSEndpoint:
+    Value: !GetAtt RDS.Endpoint.Address

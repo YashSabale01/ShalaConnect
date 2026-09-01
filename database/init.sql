@@ -1,15 +1,7 @@
--- ShalaConnect Database Setup
--- Run this ONLY if you want to pre-create the database manually.
--- Otherwise Spring Boot (ddl-auto=update) will create tables automatically.
-
-CREATE DATABASE IF NOT EXISTS school_management
-  CHARACTER SET utf8mb4
-  COLLATE utf8mb4_unicode_ci;
-
-USE school_management;
-
--- The tables are auto-created by Hibernate on first run.
--- The default admin account is also seeded automatically:
+-- ShalaConnect Database Setup (PostgreSQL)
+-- This runs automatically when the postgres container starts for the first time.
+-- Tables are auto-created by Hibernate (ddl-auto=update) on first run.
+-- Default admin account is seeded automatically by DataSeeder.java:
 --   Email:    admin@shalaconnect.in
 --   Password: Admin@123
 --

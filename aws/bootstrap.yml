@@ -1,0 +1,3 @@
+# Not used.
+# All IAM roles (CodeBuild, CodePipeline, ECS) are created
+# inside aws/cloudformation.yml as part of the main stack.

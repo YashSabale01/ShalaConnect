@@ -1,11 +1,15 @@
-FROM eclipse-temurin:21-jdk-alpine AS builder
+FROM maven:3.9.6-eclipse-temurin-21-alpine AS builder
 WORKDIR /app
 COPY pom.xml .
+RUN mvn dependency:go-offline -q
 COPY src ./src
-RUN apk add --no-cache maven && mvn clean package -DskipTests
+RUN mvn clean package -DskipTests -q
 
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 COPY --from=builder /app/target/*.jar app.jar
-EXPOSE 10000
-ENTRYPOINT ["sh", "-c", "java -jar app.jar --server.port=${PORT:-10000}"]
+RUN mkdir -p uploads && chown -R appuser:appgroup /app
+USER appuser
+EXPOSE 8080
+ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "-jar", "app.jar"]

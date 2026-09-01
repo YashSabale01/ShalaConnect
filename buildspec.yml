@@ -1,0 +1,34 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c1-8)
+      - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
+
+  build:
+    commands:
+      # Backend
+      - docker build -t $ECR_BACKEND_URI:$IMAGE_TAG ./backend
+      - docker tag  $ECR_BACKEND_URI:$IMAGE_TAG $ECR_BACKEND_URI:latest
+      # Frontend
+      - docker build --build-arg VITE_API_URL=/api -t $ECR_FRONTEND_URI:$IMAGE_TAG ./frontend
+      - docker tag  $ECR_FRONTEND_URI:$IMAGE_TAG $ECR_FRONTEND_URI:latest
+
+  post_build:
+    commands:
+      - docker push $ECR_BACKEND_URI:$IMAGE_TAG
+      - docker push $ECR_BACKEND_URI:latest
+      - docker push $ECR_FRONTEND_URI:$IMAGE_TAG
+      - docker push $ECR_FRONTEND_URI:latest
+      # imagedefinitions.json tells CodePipeline which containers to update in ECS
+      - |
+        printf '[
+          {"name":"backend",  "imageUri":"%s"},
+          {"name":"frontend", "imageUri":"%s"}
+        ]' $ECR_BACKEND_URI:$IMAGE_TAG $ECR_FRONTEND_URI:$IMAGE_TAG > imagedefinitions.json
+      - cat imagedefinitions.json
+
+artifacts:
+  files:
+    - imagedefinitions.json
