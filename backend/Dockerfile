@@ -7,5 +7,5 @@ RUN apk add --no-cache maven && mvn clean package -DskipTests
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 COPY --from=builder /app/target/*.jar app.jar
-EXPOSE 7070
-ENTRYPOINT ["java", "-jar", "app.jar"]
+EXPOSE 10000
+ENTRYPOINT ["sh", "-c", "java -jar app.jar --server.port=${PORT:-10000}"]

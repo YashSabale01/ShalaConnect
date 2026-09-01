@@ -1,0 +1,48 @@
+databases:
+  - name: shalaconnect-db
+    databaseName: school_management
+    user: shalaconnect
+    plan: free
+
+services:
+  - type: web
+    name: shalaconnect-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    envVars:
+      - key: DB_URL
+        fromDatabase:
+          name: shalaconnect-db
+          property: connectionString
+      - key: DB_USERNAME
+        fromDatabase:
+          name: shalaconnect-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: shalaconnect-db
+          property: password
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRATION
+        value: "604800000"
+      - key: UPLOAD_DIR
+        value: uploads
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false
+
+  - type: web
+    name: shalaconnect-frontend
+    runtime: docker
+    dockerfilePath: ./frontend/Dockerfile
+    dockerContext: ./frontend
+    plan: free
+    envVars:
+      - key: VITE_API_URL
+        sync: false
