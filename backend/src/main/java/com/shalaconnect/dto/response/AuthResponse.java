@@ -17,6 +17,8 @@ public class AuthResponse {
         private String role;
         private String phone;
         private String profilePhoto;
+        private boolean active;
+        private java.time.LocalDateTime createdAt;
         private SchoolResponse.Summary school;
     }
 
@@ -28,6 +30,8 @@ public class AuthResponse {
         dto.setRole(user.getRole().name());
         dto.setPhone(user.getPhone());
         dto.setProfilePhoto(user.getProfilePhoto());
+        dto.setActive(user.isActive());
+        dto.setCreatedAt(user.getCreatedAt());
         if (user.getSchool() != null) {
             dto.setSchool(SchoolResponse.Summary.from(user.getSchool()));
         }
