@@ -8,10 +8,8 @@ phases:
 
   build:
     commands:
-      # Backend
       - docker build -t $ECR_BACKEND_URI:$IMAGE_TAG ./backend
       - docker tag  $ECR_BACKEND_URI:$IMAGE_TAG $ECR_BACKEND_URI:latest
-      # Frontend
       - docker build --build-arg VITE_API_URL=/api -t $ECR_FRONTEND_URI:$IMAGE_TAG ./frontend
       - docker tag  $ECR_FRONTEND_URI:$IMAGE_TAG $ECR_FRONTEND_URI:latest
 
@@ -21,13 +19,62 @@ phases:
       - docker push $ECR_BACKEND_URI:latest
       - docker push $ECR_FRONTEND_URI:$IMAGE_TAG
       - docker push $ECR_FRONTEND_URI:latest
-      # imagedefinitions.json tells CodePipeline which containers to update in ECS
+
+      # Register task definition
       - |
-        printf '[
-          {"name":"backend",  "imageUri":"%s"},
-          {"name":"frontend", "imageUri":"%s"}
-        ]' $ECR_BACKEND_URI:$IMAGE_TAG $ECR_FRONTEND_URI:$IMAGE_TAG > imagedefinitions.json
-      - cat imagedefinitions.json
+        TASK_DEF_ARN=$(aws ecs register-task-definition \
+          --family shalaconnect \
+          --network-mode awsvpc \
+          --requires-compatibilities FARGATE \
+          --cpu 1024 --memory 2048 \
+          --execution-role-arn $ECS_EXECUTION_ROLE_ARN \
+          --task-role-arn $ECS_EXECUTION_ROLE_ARN \
+          --container-definitions "[
+            {\"name\":\"backend\",
+             \"image\":\"$ECR_BACKEND_URI:$IMAGE_TAG\",
+             \"portMappings\":[{\"containerPort\":8080,\"protocol\":\"tcp\"}],
+             \"essential\":true,
+             \"environment\":[
+               {\"name\":\"UPLOAD_DIR\",\"value\":\"uploads\"},
+               {\"name\":\"JWT_EXPIRATION\",\"value\":\"604800000\"}
+             ],
+             \"secrets\":[
+               {\"name\":\"DB_URL\",         \"valueFrom\":\"arn:aws:ssm:$AWS_REGION:$ACCOUNT_ID:parameter/shalaconnect/DB_URL\"},
+               {\"name\":\"DB_USERNAME\",    \"valueFrom\":\"arn:aws:ssm:$AWS_REGION:$ACCOUNT_ID:parameter/shalaconnect/DB_USERNAME\"},
+               {\"name\":\"DB_PASSWORD\",    \"valueFrom\":\"arn:aws:ssm:$AWS_REGION:$ACCOUNT_ID:parameter/shalaconnect/DB_PASSWORD\"},
+               {\"name\":\"JWT_SECRET\",     \"valueFrom\":\"arn:aws:ssm:$AWS_REGION:$ACCOUNT_ID:parameter/shalaconnect/JWT_SECRET\"},
+               {\"name\":\"ADMIN_EMAIL\",    \"valueFrom\":\"arn:aws:ssm:$AWS_REGION:$ACCOUNT_ID:parameter/shalaconnect/ADMIN_EMAIL\"},
+               {\"name\":\"ADMIN_PASSWORD\", \"valueFrom\":\"arn:aws:ssm:$AWS_REGION:$ACCOUNT_ID:parameter/shalaconnect/ADMIN_PASSWORD\"},
+               {\"name\":\"ALLOWED_ORIGINS\",\"valueFrom\":\"arn:aws:ssm:$AWS_REGION:$ACCOUNT_ID:parameter/shalaconnect/ALLOWED_ORIGINS\"}
+             ],
+             \"logConfiguration\":{\"logDriver\":\"awslogs\",\"options\":{\"awslogs-group\":\"/ecs/shalaconnect-backend\",\"awslogs-region\":\"$AWS_REGION\",\"awslogs-stream-prefix\":\"ecs\"}}
+            },
+            {\"name\":\"frontend\",
+             \"image\":\"$ECR_FRONTEND_URI:$IMAGE_TAG\",
+             \"portMappings\":[{\"containerPort\":80,\"protocol\":\"tcp\"}],
+             \"essential\":true,
+             \"logConfiguration\":{\"logDriver\":\"awslogs\",\"options\":{\"awslogs-group\":\"/ecs/shalaconnect-frontend\",\"awslogs-region\":\"$AWS_REGION\",\"awslogs-stream-prefix\":\"ecs\"}}
+            }
+          ]" \
+          --query 'taskDefinition.taskDefinitionArn' --output text)
+
+      # Create service if it doesn't exist, otherwise update it
+      - |
+        SERVICE_STATUS=$(aws ecs describe-services --cluster shalaconnect-cluster --services shalaconnect-service --query 'services[0].status' --output text 2>/dev/null || echo "MISSING")
+        if [ "$SERVICE_STATUS" = "ACTIVE" ]; then
+          aws ecs update-service --cluster shalaconnect-cluster --service shalaconnect-service --task-definition $TASK_DEF_ARN --force-new-deployment
+        else
+          aws ecs create-service \
+            --cluster shalaconnect-cluster \
+            --service-name shalaconnect-service \
+            --task-definition $TASK_DEF_ARN \
+            --desired-count 1 \
+            --launch-type FARGATE \
+            --network-configuration "awsvpcConfiguration={subnets=[$SUBNET1,$SUBNET2],securityGroups=[$ECS_SG],assignPublicIp=ENABLED}" \
+            --deployment-configuration "minimumHealthyPercent=0,maximumPercent=200"
+        fi
+
+      - printf '[{"name":"backend","imageUri":"%s"},{"name":"frontend","imageUri":"%s"}]' $ECR_BACKEND_URI:$IMAGE_TAG $ECR_FRONTEND_URI:$IMAGE_TAG > imagedefinitions.json
 
 artifacts:
   files:
