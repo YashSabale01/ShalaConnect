@@ -1,9 +1,0 @@
-# GitHub Actions is NOT used for deployment.
-#
-# Deployment is handled entirely by AWS CodePipeline + CodeBuild
-# defined in aws/cloudformation.yml.
-#
-# On every push to main:
-#   CodePipeline (Source) → CodeBuild (Build) → ECS (Deploy)
-#
-# See aws/cloudformation.yml and buildspec.yml.
