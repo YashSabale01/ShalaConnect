@@ -70,7 +70,27 @@ This is the only thing you cannot do via CloudFormation — GitHub OAuth require
 
 #### Step 2 — Deploy the CloudFormation stack
 
-Run this one command (replace the values):
+**Option A — AWS Console (recommended):**
+
+1. Go to: `https://ap-south-1.console.aws.amazon.com/cloudformation/home?region=ap-south-1#/stacks/create`
+2. Choose **Upload a template file** → upload `aws/cloudformation.yml` → **Next**
+3. Stack name: `shalaconnect`
+4. Fill parameters:
+
+| Parameter | Value |
+|---|---|
+| AdminEmail | `admin@shalaconnect.in` |
+| AdminPassword | `Admin@123` |
+| DBPassword | `MyRdsPass123!` |
+| GitHubBranch | `main` |
+| GitHubConnectionArn | *(ARN from Step 1)* |
+| GitHubOwner | `YashSabale01` |
+| GitHubRepo | `ShalaConnect` |
+| JwtSecret | `shalaconnect_prod_jwt_secret_32_chars_minimum!!` |
+
+5. **Next** → **Next** → check ✅ IAM acknowledgement → **Submit**
+
+**Option B — AWS CLI:**
 
 ```bash
 aws cloudformation deploy \
@@ -82,7 +102,7 @@ aws cloudformation deploy \
     GitHubOwner=YashSabale01 \
     GitHubRepo=ShalaConnect \
     GitHubBranch=main \
-    GitHubConnectionArn=arn:aws:codestar-connections:ap-south-1:ACCOUNT_ID:connection/XXXXXXXX \
+    GitHubConnectionArn=arn:aws:codeconnections:ap-south-1:ACCOUNT_ID:connection/XXXXXXXX \
     DBPassword=MyRdsPass123! \
     JwtSecret=shalaconnect_prod_jwt_secret_32_chars_minimum!! \
     AdminEmail=admin@shalaconnect.in \
@@ -90,7 +110,7 @@ aws cloudformation deploy \
 ```
 
 This takes ~15 minutes (RDS provisioning).  
-When it completes, CodePipeline automatically runs the first build and deploy.
+When it completes, CodePipeline automatically runs the first build and deploys the app.
 
 ---
 
