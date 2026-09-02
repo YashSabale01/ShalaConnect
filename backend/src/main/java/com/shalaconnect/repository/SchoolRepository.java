@@ -16,4 +16,10 @@ public interface SchoolRepository extends JpaRepository<School, Long> {
 
     @Query("SELECT s FROM School s WHERE s.active = true ORDER BY s.name ASC")
     List<School> findAllActiveSortedByName();
+
+    @Query("SELECT s FROM School s LEFT JOIN FETCH s.staff WHERE s.active = true ORDER BY s.name ASC")
+    List<School> findAllActiveSortedByNameWithStaff();
+
+    @Query("SELECT s FROM School s LEFT JOIN FETCH s.staff WHERE s.id = :id")
+    Optional<School> findByIdWithStaff(@org.springframework.data.repository.query.Param("id") Long id);
 }

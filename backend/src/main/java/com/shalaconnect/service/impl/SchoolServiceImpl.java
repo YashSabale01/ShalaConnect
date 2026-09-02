@@ -28,7 +28,7 @@ public class SchoolServiceImpl implements SchoolService {
     @Override
     @Transactional(readOnly = true)
     public List<SchoolResponse> getAllSchools() {
-        return schoolRepository.findAllActiveSortedByName().stream()
+        return schoolRepository.findAllActiveSortedByNameWithStaff().stream()
             .map(SchoolResponse::from)
             .collect(Collectors.toList());
     }
@@ -36,7 +36,8 @@ public class SchoolServiceImpl implements SchoolService {
     @Override
     @Transactional(readOnly = true)
     public SchoolResponse getSchoolById(Long id) {
-        return SchoolResponse.from(findSchoolById(id));
+        return SchoolResponse.from(schoolRepository.findByIdWithStaff(id)
+            .orElseThrow(() -> new ResourceNotFoundException("School", id)));
     }
 
     @Override
@@ -121,11 +122,12 @@ public class SchoolServiceImpl implements SchoolService {
     @Override
     @Transactional
     public SchoolResponse removeHeadmaster(Long schoolId) {
-        School school = findSchoolById(schoolId);
+        findSchoolById(schoolId);
         userRepository.findBySchoolId(schoolId).stream()
             .filter(u -> u.getRole() == com.shalaconnect.model.User.Role.HEADMASTER)
             .forEach(u -> { u.setSchool(null); userRepository.save(u); });
-        return SchoolResponse.from(school);
+        return SchoolResponse.from(schoolRepository.findByIdWithStaff(schoolId)
+            .orElseThrow(() -> new ResourceNotFoundException("School", schoolId)));
     }
 
     private School findSchoolById(Long id) {
