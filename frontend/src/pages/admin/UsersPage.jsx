@@ -94,7 +94,8 @@ export default function UsersPage() {
   const onSubmit = async (data) => {
     setSubmitting(true)
     try {
-      await authApi.registerHeadmaster(data)
+      const payload = { ...data, schoolId: data.schoolId ? parseInt(data.schoolId) : null }
+      await authApi.registerHeadmaster(payload)
       toast.success('Headmaster account created!')
       setShowForm(false)
       reset()
@@ -130,6 +131,7 @@ export default function UsersPage() {
     try {
       const schoolId = newSchoolId ? parseInt(newSchoolId) : null
       await userApi.assignSchool(assigningSchool.id, schoolId)
+
       toast.success('School assigned successfully')
       setAssigningSchool(null)
       setNewSchoolId('')

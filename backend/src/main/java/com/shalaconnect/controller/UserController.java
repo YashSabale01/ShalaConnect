@@ -10,6 +10,7 @@ import com.shalaconnect.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,6 +21,7 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('ADMIN')")
+@Transactional
 public class UserController {
 
     private final UserRepository userRepository;
@@ -28,7 +30,7 @@ public class UserController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<AuthResponse.UserDto>>> getAllUsers() {
-        List<AuthResponse.UserDto> users = userRepository.findAll().stream()
+        List<AuthResponse.UserDto> users = userRepository.findAllWithSchool().stream()
             .map(AuthResponse::fromUser)
             .collect(Collectors.toList());
         return ResponseEntity.ok(ApiResponse.success(users));
@@ -48,10 +50,11 @@ public class UserController {
         User user = userRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("User", id));
         Object schoolIdObj = body.get("schoolId");
-        if (schoolIdObj == null || schoolIdObj.toString().isBlank()) {
+        String schoolIdStr = schoolIdObj == null ? null : schoolIdObj.toString();
+        if (schoolIdStr == null || schoolIdStr.isBlank() || schoolIdStr.equals("null")) {
             user.setSchool(null);
         } else {
-            Long schoolId = Long.valueOf(schoolIdObj.toString());
+            Long schoolId = Long.valueOf(schoolIdStr);
             com.shalaconnect.model.School school = schoolRepository.findById(schoolId)
                 .orElseThrow(() -> new ResourceNotFoundException("School", schoolId));
             user.setSchool(school);
