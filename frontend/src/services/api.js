@@ -143,6 +143,6 @@ export const userApi = {
   getAll:         ()   => api.get('/users'),
   getHeadmasters: ()   => api.get('/users/headmasters'),
   toggleActive:   (id) => api.patch(`/users/${id}/toggle-active`),
-  assignSchool:   (id, schoolId) => api.patch(`/users/${id}/assign-school`, { schoolId }),
+  assignSchool:   (id, schoolId) => api.patch(`/users/${id}/assign-school`, { schoolId: schoolId || null }),
   delete:         (id) => api.delete(`/users/${id}`),
 }

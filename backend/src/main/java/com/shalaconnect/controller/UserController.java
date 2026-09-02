@@ -48,7 +48,7 @@ public class UserController {
         User user = userRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("User", id));
         Object schoolIdObj = body.get("schoolId");
-        if (schoolIdObj == null) {
+        if (schoolIdObj == null || schoolIdObj.toString().isBlank()) {
             user.setSchool(null);
         } else {
             Long schoolId = Long.valueOf(schoolIdObj.toString());
