@@ -32,6 +32,7 @@ public class AttendanceController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','HEADMASTER')")
     public ResponseEntity<ApiResponse<AttendanceResponse>> updateAttendance(
             @PathVariable Long id,
             @Valid @RequestBody AttendanceRequest request,

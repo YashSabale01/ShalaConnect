@@ -97,19 +97,27 @@ export const meetingApi = {
 
 // ─── Events ───────────────────────────────────────────────────────────────────
 export const eventApi = {
-  getAll:       ()        => api.get('/events'),
-  getById:      (id)      => api.get(`/events/${id}`),
-  create:       (data)    => api.post('/events', data),
-  update:       (id, data)=> api.put(`/events/${id}`, data),
-  uploadMedia:  (id, file)=> {
+  getAll:              ()        => api.get('/events'),
+  getById:             (id)      => api.get(`/events/${id}`),
+  create:              (data)    => api.post('/events', data),
+  update:              (id, data)=> api.put(`/events/${id}`, data),
+  uploadMedia:         (id, file)=> {
     const fd = new FormData(); fd.append('file', file)
     return api.post(`/events/${id}/media`, fd, { headers: { 'Content-Type': 'multipart/form-data' } })
   },
-  uploadReport: (id, file)=> {
+  uploadReport:        (id, file)=> {
     const fd = new FormData(); fd.append('file', file)
     return api.post(`/events/${id}/report`, fd, { headers: { 'Content-Type': 'multipart/form-data' } })
   },
-  delete:       (id)      => api.delete(`/events/${id}`),
+  delete:              (id)      => api.delete(`/events/${id}`),
+  // Implementation
+  submitImplementation:(id, desc) => api.post(`/events/${id}/implement`, { description: desc }),
+  uploadImplPhoto:     (id, file)=> {
+    const fd = new FormData(); fd.append('file', file)
+    return api.post(`/events/${id}/implement/photo`, fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+  },
+  getImplementations:  (id)      => api.get(`/events/${id}/implementations`),
+  getMyImplementation: (id)      => api.get(`/events/${id}/my-implementation`),
 }
 
 // ─── Forms ────────────────────────────────────────────────────────────────────

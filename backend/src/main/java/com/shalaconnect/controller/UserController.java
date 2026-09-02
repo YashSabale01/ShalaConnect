@@ -4,6 +4,7 @@ import com.shalaconnect.dto.response.ApiResponse;
 import com.shalaconnect.dto.response.AuthResponse;
 import com.shalaconnect.exception.ResourceNotFoundException;
 import com.shalaconnect.model.User;
+import com.shalaconnect.repository.EventImplementationRepository;
 import com.shalaconnect.repository.SchoolRepository;
 import com.shalaconnect.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,7 @@ public class UserController {
 
     private final UserRepository userRepository;
     private final SchoolRepository schoolRepository;
+    private final EventImplementationRepository implRepository;
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<AuthResponse.UserDto>>> getAllUsers() {
@@ -72,8 +74,15 @@ public class UserController {
     public ResponseEntity<ApiResponse<Void>> deleteUser(@PathVariable Long id) {
         User user = userRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("User", id));
-        user.setActive(false);
+        // Clear FK references before hard delete
+        user.setSchool(null);
         userRepository.save(user);
-        return ResponseEntity.ok(ApiResponse.success("User deactivated", null));
+        // Nullify submitted_by on event implementations
+        implRepository.findBySubmittedById(id).forEach(impl -> {
+            impl.setSubmittedBy(null);
+            implRepository.save(impl);
+        });
+        userRepository.deleteById(id);
+        return ResponseEntity.ok(ApiResponse.success("User deleted", null));
     }
 }

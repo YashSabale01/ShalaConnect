@@ -1,16 +1,18 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 
 // Generic data-fetching hook
 export function useApi(apiFn, deps = []) {
   const [data, setData]       = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState(null)
+  const apiFnRef = useRef(apiFn)
+  apiFnRef.current = apiFn
 
   const fetch = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      const res = await apiFn()
+      const res = await apiFnRef.current()
       setData(res.data.data)
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load data')

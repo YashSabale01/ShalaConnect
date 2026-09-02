@@ -15,7 +15,9 @@ import clsx from 'clsx'
 export default function SubmitAttendancePage() {
   const { user } = useAuth()
   const { data: records, loading, refetch } = useApi(
-    () => user?.school?.id ? attendanceApi.getBySchool(user.school.id) : Promise.resolve({ data: { data: [] } }),
+    () => user?.school?.id
+      ? attendanceApi.getBySchool(user.school.id)
+      : Promise.resolve({ data: { data: [] } }),
     [user?.school?.id]
   )
   const [submitting, setSubmitting] = useState(false)

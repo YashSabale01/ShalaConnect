@@ -15,6 +15,7 @@ public class EventResponse {
     private String venue;
     private String eventType;
     private String createdByName;
+    private String createdByRole;
     private List<String> mediaPaths;
     private String reportPath;
     private LocalDateTime createdAt;
@@ -25,6 +26,7 @@ public class EventResponse {
             .eventDate(e.getEventDate()).venue(e.getVenue())
             .eventType(e.getEventType().name())
             .createdByName(e.getCreatedBy() != null ? e.getCreatedBy().getName() : null)
+            .createdByRole(e.getCreatedBy() != null ? e.getCreatedBy().getRole().name() : null)
             .mediaPaths(e.getMediaPaths()).reportPath(e.getReportPath())
             .createdAt(e.getCreatedAt()).build();
     }

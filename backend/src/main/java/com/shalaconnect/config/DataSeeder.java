@@ -20,10 +20,15 @@ public class DataSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        String adminEmail = System.getenv("ADMIN_EMAIL") != null ? System.getenv("ADMIN_EMAIL") : env.getProperty("app.admin.email");
+        String adminEmail    = System.getenv("ADMIN_EMAIL")    != null ? System.getenv("ADMIN_EMAIL")    : env.getProperty("app.admin.email");
         String adminPassword = System.getenv("ADMIN_PASSWORD") != null ? System.getenv("ADMIN_PASSWORD") : env.getProperty("app.admin.password");
 
-        if (adminEmail != null && !userRepository.existsByEmail(adminEmail)) {
+        if (adminEmail == null || adminEmail.isBlank() || adminPassword == null || adminPassword.isBlank()) {
+            log.warn("⚠️  ADMIN_EMAIL or ADMIN_PASSWORD not set — skipping admin seed");
+            return;
+        }
+
+        if (!userRepository.existsByEmail(adminEmail)) {
             User admin = User.builder()
                 .name("System Administrator")
                 .email(adminEmail)

@@ -201,7 +201,7 @@ public class FormServiceImpl implements FormService {
         map.put("deadline", form.getDeadline());
         map.put("createdAt", form.getCreatedAt());
         map.put("createdByName", form.getCreatedBy() != null ? form.getCreatedBy().getName() : null);
-        map.put("responseCount", form.getResponses().size());
+        map.put("responseCount", responseRepository.countByFormId(form.getId()));
         if (currentUser != null) {
             boolean hasResponded = responseRepository
                 .existsByFormIdAndSubmittedById(form.getId(), currentUser.getId());

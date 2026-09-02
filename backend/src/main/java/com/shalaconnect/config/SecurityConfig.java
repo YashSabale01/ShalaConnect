@@ -62,14 +62,21 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/gr").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/gr/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/meetings").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/meetings/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/meetings/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/events").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/events/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/events/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/forms").hasRole("ADMIN")
                 .requestMatchers("/api/forms/{id}/export").hasRole("ADMIN")
                 .requestMatchers("/api/users/**").hasRole("ADMIN")
                 // Headmaster
                 .requestMatchers(HttpMethod.POST, "/api/attendance").hasRole("HEADMASTER")
+                .requestMatchers(HttpMethod.PUT, "/api/attendance/**").hasAnyRole("ADMIN", "HEADMASTER")
                 .requestMatchers("/api/forms/{id}/respond").hasRole("HEADMASTER")
                 .requestMatchers("/api/meetings/{id}/acknowledge").hasRole("HEADMASTER")
+                .requestMatchers("/api/events/{id}/implement").hasRole("HEADMASTER")
+                .requestMatchers("/api/events/{id}/implement/photo").hasRole("HEADMASTER")
                 .requestMatchers("/api/gr/{id}/seen").authenticated()
                 // All authenticated
                 .anyRequest().authenticated()
@@ -83,7 +90,11 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(Arrays.asList(allowedOrigins.split(",")));
+        if ("*".equals(allowedOrigins.trim())) {
+            config.setAllowedOriginPatterns(List.of("*"));
+        } else {
+            config.setAllowedOrigins(Arrays.asList(allowedOrigins.split(",")));
+        }
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);

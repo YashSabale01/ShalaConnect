@@ -45,7 +45,7 @@ export default function UsersPage() {
       await userApi.toggleActive(user.id)
       toast.success(`User ${user.active ? 'deactivated' : 'activated'}`)
       refetch()
-    } catch { toast.error('Failed to update user status') }
+    } catch (err) { toast.error(err.response?.data?.message || 'Failed to update user status') }
   }
 
   const handleDelete = async () => {
@@ -55,7 +55,7 @@ export default function UsersPage() {
       toast.success('User removed')
       setDeleting(null)
       refetch()
-    } catch { toast.error('Failed to remove user') }
+    } catch (err) { toast.error(err.response?.data?.message || 'Failed to remove user') }
     finally { setSubmitting(false) }
   }
 

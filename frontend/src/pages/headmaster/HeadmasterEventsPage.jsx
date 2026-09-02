@@ -1,214 +1,262 @@
-import { useState, useRef } from 'react'
-import { useForm } from 'react-hook-form'
+import { useState, useCallback } from 'react'
 import { eventApi } from '../../services/api'
 import { useApi } from '../../hooks/useApi'
-import Modal from '../../components/ui/Modal'
-import ConfirmDialog from '../../components/ui/ConfirmDialog'
 import EmptyState from '../../components/ui/EmptyState'
 import { ListSkeleton } from '../../components/ui/Skeleton'
+import Modal from '../../components/ui/Modal'
 import {
-  BookOpen, Plus, Calendar, MapPin, Image, FileText,
-  Upload, Edit2, Trash2, AlertCircle
+  BookOpen, Calendar, MapPin, CheckCircle2, Clock,
+  Upload, Image, ChevronDown, ChevronUp, AlertCircle
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
 import clsx from 'clsx'
 
-const EVENT_TYPES = ['CULTURAL', 'SPORTS', 'ACADEMIC', 'HEALTH', 'NATIONAL_DAY', 'OTHER']
 const TYPE_COLORS = {
   CULTURAL: 'badge-purple', SPORTS: 'badge-green', ACADEMIC: 'badge-blue',
   HEALTH: 'badge-red', NATIONAL_DAY: 'badge-yellow', OTHER: 'badge-gray'
 }
 
 export default function HeadmasterEventsPage() {
-  const { data: events, loading, refetch } = useApi(() => eventApi.getAll())
-  const [showForm,   setShowForm]   = useState(false)
-  const [editing,    setEditing]    = useState(null)
-  const [deleting,   setDeleting]   = useState(null)
-  const [uploading,  setUploading]  = useState(null)
-  const [submitting, setSubmitting] = useState(false)
+  const { data: events, loading: eventsLoading } = useApi(() => eventApi.getAll())
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm()
+  // We fetch each event's my-implementation lazily when the user expands/opens it
+  // to avoid N+1 on mount. State: { [eventId]: impl | null }
+  const [implCache,   setImplCache]   = useState({})
+  const [loadingImpl, setLoadingImpl] = useState({})
+  const [expanded,    setExpanded]    = useState({})
+  const [showModal,   setShowModal]   = useState(null) // eventId
+  const [description, setDescription] = useState('')
+  const [saving,      setSaving]      = useState(false)
+  const [uploading,   setUploading]   = useState(null) // eventId
 
-  const openCreate = () => { setEditing(null); reset({ eventType: 'CULTURAL' }); setShowForm(true) }
-  const openEdit   = (e) => { setEditing(e); reset({ ...e, eventDate: e.eventDate }); setShowForm(true) }
-
-  const onSubmit = async (data) => {
-    setSubmitting(true)
+  const fetchImpl = useCallback(async (eventId) => {
+    if (implCache[eventId] !== undefined || loadingImpl[eventId]) return
+    setLoadingImpl(p => ({ ...p, [eventId]: true }))
     try {
-      if (editing) { await eventApi.update(editing.id, data); toast.success('Event updated') }
-      else { await eventApi.create(data); toast.success('Event created!') }
-      setShowForm(false); refetch()
-    } catch (err) { toast.error(err.response?.data?.message || 'Failed to save') }
-    finally { setSubmitting(false) }
+      const res = await eventApi.getMyImplementation(eventId)
+      setImplCache(p => ({ ...p, [eventId]: res.data.data || null }))
+    } catch {
+      setImplCache(p => ({ ...p, [eventId]: null }))
+    } finally {
+      setLoadingImpl(p => ({ ...p, [eventId]: false }))
+    }
+  }, [implCache, loadingImpl])
+
+  const toggleExpand = (eventId) => {
+    fetchImpl(eventId)
+    setExpanded(p => ({ ...p, [eventId]: !p[eventId] }))
   }
 
-  const handleDelete = async () => {
-    setSubmitting(true)
-    try { await eventApi.delete(deleting.id); toast.success('Event deleted'); setDeleting(null); refetch() }
-    catch { toast.error('Failed to delete') }
-    finally { setSubmitting(false) }
+  const openModal = (event) => {
+    fetchImpl(event.id)
+    setDescription(implCache[event.id]?.description || '')
+    setShowModal(event.id)
   }
 
-  const handleFileUpload = async (eventId, file, type) => {
-    setUploading({ id: eventId, type })
+  // When modal opens, pre-fill description from cache if available
+  const getModalDescription = () => {
+    if (showModal && implCache[showModal]?.description) return implCache[showModal].description
+    return description
+  }
+
+  const handleSave = async () => {
+    if (!description.trim()) { toast.error('Please write how you implemented this event'); return }
+    setSaving(true)
     try {
-      if (type === 'media') await eventApi.uploadMedia(eventId, file)
-      else await eventApi.uploadReport(eventId, file)
-      toast.success(`${type === 'media' ? 'Photo' : 'Report'} uploaded!`)
-      refetch()
-    } catch { toast.error('Upload failed') }
-    finally { setUploading(null) }
+      const res = await eventApi.submitImplementation(showModal, description.trim())
+      setImplCache(p => ({ ...p, [showModal]: res.data.data }))
+      toast.success('Implementation saved!')
+      setShowModal(null)
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to save')
+    } finally { setSaving(false) }
   }
 
-  if (loading) return <ListSkeleton items={4} />
+  const handlePhoto = async (eventId, file) => {
+    setUploading(eventId)
+    try {
+      const res = await eventApi.uploadImplPhoto(eventId, file)
+      setImplCache(p => ({ ...p, [eventId]: res.data.data }))
+      toast.success('Photo uploaded!')
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Upload failed')
+    } finally { setUploading(null) }
+  }
+
+  if (eventsLoading) return <ListSkeleton items={4} />
+
+  const sorted = (events || []).sort((a, b) => new Date(b.eventDate) - new Date(a.eventDate))
 
   return (
     <div className="page-transition">
       <div className="page-header">
         <div>
           <h1 className="page-title">Events</h1>
-          <p className="page-subtitle">Document school events and activities</p>
+          <p className="page-subtitle">Submit your school's implementation report for each event</p>
         </div>
-        <button onClick={openCreate} className="btn-primary"><Plus className="w-4 h-4" />Add Event</button>
       </div>
 
-      {(events || []).length === 0 ? (
+      {sorted.length === 0 ? (
         <EmptyState
-          icon={BookOpen} title="No events yet"
-          description="Add school events and cultural activities"
-          action={<button onClick={openCreate} className="btn-primary"><Plus className="w-4 h-4" />Add Event</button>}
+          icon={BookOpen} title="No events assigned"
+          description="The cluster head hasn't created any events yet"
         />
       ) : (
         <div className="space-y-4">
-          {(events || []).map(event => (
-            <div key={event.id} className="card p-5">
-              <div className="flex items-start justify-between gap-4 mb-3">
-                <div className="flex items-start gap-3 flex-1 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center flex-shrink-0">
-                    <BookOpen className="w-5 h-5 text-orange-600" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <h3 className="font-semibold text-gray-900">{event.title}</h3>
-                      <span className={clsx('badge', TYPE_COLORS[event.eventType] || 'badge-gray')}>
-                        {event.eventType?.replace('_', ' ')}
-                      </span>
-                    </div>
-                    {event.description && <p className="text-sm text-gray-500 line-clamp-2 mb-1">{event.description}</p>}
-                    <div className="flex flex-wrap gap-4 text-xs text-gray-400">
-                      <span className="flex items-center gap-1">
-                        <Calendar className="w-3 h-3" />
-                        {event.eventDate && format(new Date(event.eventDate), 'dd MMMM yyyy')}
-                      </span>
-                      {event.venue && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{event.venue}</span>}
-                      <span className="flex items-center gap-1"><Image className="w-3 h-3" />{event.mediaPaths?.length || 0} photos</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <button onClick={() => openEdit(event)} className="btn-ghost btn-sm p-1.5"><Edit2 className="w-4 h-4" /></button>
-                  <button onClick={() => setDeleting(event)}
-                    className="btn-ghost btn-sm p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
+          {sorted.map(event => {
+            const impl = implCache[event.id]
+            const implemented = !!impl
+            const isExpanded = !!expanded[event.id]
 
-              {/* Media thumbnails */}
-              {event.mediaPaths?.length > 0 && (
-                <div className="flex gap-2 mb-3 flex-wrap">
-                  {event.mediaPaths.slice(0, 4).map((path, i) => (
-                    <a key={i} href={`/uploads/${path}`} target="_blank" rel="noreferrer">
-                      <img src={`/uploads/${path}`} alt={`Event photo ${i + 1}`}
-                        className="w-16 h-16 rounded-lg object-cover border border-gray-200 hover:opacity-80 transition-opacity" />
-                    </a>
-                  ))}
-                  {event.mediaPaths.length > 4 && (
-                    <div className="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center text-xs text-gray-500 font-medium">
-                      +{event.mediaPaths.length - 4}
+            return (
+              <div key={event.id}
+                className={clsx('card p-5 border-l-4', implemented ? 'border-l-green-400' : 'border-l-orange-400')}>
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-3 flex-1 min-w-0">
+                    <div className={clsx('w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0',
+                      implemented ? 'bg-green-100' : 'bg-orange-100')}>
+                      {implemented
+                        ? <CheckCircle2 className="w-5 h-5 text-green-600" />
+                        : <Clock className="w-5 h-5 text-orange-500" />
+                      }
                     </div>
-                  )}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <h3 className="font-semibold text-gray-900">{event.title}</h3>
+                        <span className={clsx('badge', TYPE_COLORS[event.eventType] || 'badge-gray')}>
+                          {event.eventType?.replace('_', ' ')}
+                        </span>
+                        <span className={clsx('badge', implemented ? 'badge-green' : 'badge-yellow')}>
+                          {implemented ? 'Implemented' : 'Pending'}
+                        </span>
+                      </div>
+                      {event.description && (
+                        <p className="text-sm text-gray-500 mb-2">{event.description}</p>
+                      )}
+                      <div className="flex flex-wrap gap-4 text-xs text-gray-400">
+                        <span className="flex items-center gap-1">
+                          <Calendar className="w-3 h-3" />
+                          {event.eventDate && format(new Date(event.eventDate), 'dd MMMM yyyy')}
+                        </span>
+                        {event.venue && (
+                          <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{event.venue}</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <button
+                      onClick={() => { setDescription(implCache[event.id]?.description || ''); openModal(event) }}
+                      className={clsx('btn-sm', implemented ? 'btn-secondary' : 'btn-primary')}
+                    >
+                      {implemented ? 'Edit Report' : 'Submit Report'}
+                    </button>
+                    <button onClick={() => toggleExpand(event.id)} className="btn-ghost btn-sm p-1.5">
+                      {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </div>
-              )}
 
-              {/* Upload buttons */}
-              <div className="flex gap-2 pt-3 border-t border-gray-50 flex-wrap">
-                <label className={clsx('btn-secondary btn-sm cursor-pointer',
-                  uploading?.id === event.id && uploading?.type === 'media' && 'opacity-50')}>
-                  <Upload className="w-3 h-3" />
-                  {uploading?.id === event.id && uploading?.type === 'media' ? 'Uploading…' : 'Add Photo'}
-                  <input type="file" accept="image/*" className="hidden"
-                    onChange={e => e.target.files[0] && handleFileUpload(event.id, e.target.files[0], 'media')} />
-                </label>
-                <label className={clsx('btn-secondary btn-sm cursor-pointer',
-                  uploading?.id === event.id && uploading?.type === 'report' && 'opacity-50')}>
-                  <FileText className="w-3 h-3" />
-                  {uploading?.id === event.id && uploading?.type === 'report' ? 'Uploading…' : event.reportPath ? 'Replace Report' : 'Upload Report'}
-                  <input type="file" accept=".pdf,image/*" className="hidden"
-                    onChange={e => e.target.files[0] && handleFileUpload(event.id, e.target.files[0], 'report')} />
-                </label>
-                {event.reportPath && (
-                  <a href={`/uploads/${event.reportPath}`} target="_blank" rel="noreferrer" className="btn-secondary btn-sm">
-                    <FileText className="w-3 h-3" />View Report
-                  </a>
+                {/* Expanded implementation details */}
+                {isExpanded && (
+                  <div className="mt-4 pt-4 border-t border-gray-100 space-y-3">
+                    {loadingImpl[event.id] && (
+                      <p className="text-sm text-gray-400">Loading…</p>
+                    )}
+                    {!loadingImpl[event.id] && !impl && (
+                      <p className="text-sm text-gray-400">No implementation submitted yet.</p>
+                    )}
+                    {impl && (
+                      <>
+                        {impl.description && (
+                          <div>
+                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Your Report</p>
+                            <p className="text-sm text-gray-700 whitespace-pre-wrap">{impl.description}</p>
+                          </div>
+                        )}
+                        {impl.photoPaths?.length > 0 && (
+                          <div>
+                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                              Photos ({impl.photoPaths.length})
+                            </p>
+                            <div className="flex gap-2 flex-wrap">
+                              {impl.photoPaths.map((path, i) => (
+                                <a key={i} href={`/uploads/${path}`} target="_blank" rel="noreferrer">
+                                  <img src={`/uploads/${path}`} alt={`impl photo ${i + 1}`}
+                                    className="w-20 h-20 rounded-lg object-cover border border-gray-200 hover:opacity-80 transition-opacity" />
+                                </a>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        <label className={clsx('btn-secondary btn-sm cursor-pointer inline-flex', uploading === event.id && 'opacity-50')}>
+                          <Upload className="w-3 h-3" />
+                          {uploading === event.id ? 'Uploading…' : 'Add More Photos'}
+                          <input type="file" accept="image/*" className="hidden" disabled={uploading === event.id}
+                            onChange={e => e.target.files[0] && handlePhoto(event.id, e.target.files[0])} />
+                        </label>
+                      </>
+                    )}
+                  </div>
                 )}
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
 
-      <Modal
-        open={showForm} onClose={() => setShowForm(false)}
-        title={editing ? 'Edit Event' : 'Create Event'}
-        footer={
-          <>
-            <button onClick={() => setShowForm(false)} className="btn-secondary" disabled={submitting}>Cancel</button>
-            <button onClick={handleSubmit(onSubmit)} className="btn-primary" disabled={submitting}>
-              {submitting ? 'Saving…' : editing ? 'Update' : 'Create Event'}
-            </button>
-          </>
-        }
-      >
-        <div className="space-y-4">
-          <div className="form-group">
-            <label className="label">Event Title *</label>
-            <input className={`input ${errors.title ? 'input-error' : ''}`}
-              placeholder="e.g. Annual Sports Day"
-              {...register('title', { required: 'Title is required' })} />
-            {errors.title && <p className="error-message"><AlertCircle className="w-3 h-3" />{errors.title.message}</p>}
-          </div>
-          <div className="form-group">
-            <label className="label">Description</label>
-            <textarea className="input" rows={3} placeholder="Event details…" {...register('description')} />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
+      {/* Submit/Edit Modal */}
+      {showModal && (
+        <Modal
+          open={!!showModal}
+          onClose={() => setShowModal(null)}
+          title={implCache[showModal] ? `Edit Implementation — ${(events || []).find(e => e.id === showModal)?.title}` : `Submit Implementation — ${(events || []).find(e => e.id === showModal)?.title}`}
+          footer={
+            <>
+              <button onClick={() => setShowModal(null)} className="btn-secondary" disabled={saving}>Cancel</button>
+              <button onClick={handleSave} className="btn-primary" disabled={saving}>
+                {saving ? 'Saving…' : 'Save Report'}
+              </button>
+            </>
+          }
+        >
+          <div className="space-y-4">
             <div className="form-group">
-              <label className="label">Event Date *</label>
-              <input type="date" className={`input ${errors.eventDate ? 'input-error' : ''}`}
-                {...register('eventDate', { required: 'Date is required' })} />
-              {errors.eventDate && <p className="error-message"><AlertCircle className="w-3 h-3" />{errors.eventDate.message}</p>}
+              <label className="label">How did you implement this event? *</label>
+              <textarea
+                className="input"
+                rows={5}
+                placeholder="Describe what activities were conducted, how many students participated, outcomes, challenges faced…"
+                value={description}
+                onChange={e => setDescription(e.target.value)}
+              />
+              {!description.trim() && (
+                <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" />Description is required
+                </p>
+              )}
             </div>
             <div className="form-group">
-              <label className="label">Event Type *</label>
-              <select className="input" {...register('eventType', { required: true })}>
-                {EVENT_TYPES.map(t => <option key={t} value={t}>{t.replace('_', ' ')}</option>)}
-              </select>
+              <label className="label">Upload Photos</label>
+              <label className={clsx('btn-secondary btn-sm cursor-pointer inline-flex', uploading === showModal && 'opacity-50')}>
+                <Image className="w-3 h-3" />
+                {uploading === showModal ? 'Uploading…' : 'Choose Photo'}
+                <input type="file" accept="image/*" className="hidden" disabled={uploading === showModal}
+                  onChange={e => e.target.files[0] && handlePhoto(showModal, e.target.files[0])} />
+              </label>
+              {implCache[showModal]?.photoPaths?.length > 0 && (
+                <div className="flex gap-2 mt-2 flex-wrap">
+                  {implCache[showModal].photoPaths.map((path, i) => (
+                    <img key={i} src={`/uploads/${path}`} alt={`photo ${i + 1}`}
+                      className="w-16 h-16 rounded-lg object-cover border border-gray-200" />
+                  ))}
+                </div>
+              )}
             </div>
           </div>
-          <div className="form-group">
-            <label className="label">Venue</label>
-            <input className="input" placeholder="e.g. School Ground" {...register('venue')} />
-          </div>
-        </div>
-      </Modal>
-
-      <ConfirmDialog
-        open={!!deleting} onClose={() => setDeleting(null)}
-        onConfirm={handleDelete} loading={submitting}
-        title="Delete Event" description={`Delete "${deleting?.title}"?`}
-      />
+        </Modal>
+      )}
     </div>
   )
 }
