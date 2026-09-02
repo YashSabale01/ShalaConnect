@@ -11,71 +11,10 @@ import toast from 'react-hot-toast'
 import { format } from 'date-fns'
 import clsx from 'clsx'
 
-export default function UsersPage() {
-  const { data: users, loading, refetch } = useApi(() => userApi.getAll())
-  const { data: schools } = useApi(() => schoolApi.getAll())
-  const [showForm,       setShowForm]       = useState(false)
-  const [deleting,       setDeleting]       = useState(null)
-  const [assigningSchool, setAssigningSchool] = useState(null) // user to reassign school
-  const [newSchoolId,    setNewSchoolId]    = useState('')
-  const [submitting,     setSubmitting]     = useState(false)
-
-  const { register, handleSubmit, reset, formState: { errors } } = useForm()
-
-  const headmasters = (users || []).filter(u => u.role === 'HEADMASTER')
-  const admins      = (users || []).filter(u => u.role === 'ADMIN')
-
-  const onSubmit = async (data) => {
-    setSubmitting(true)
-    try {
-      await authApi.registerHeadmaster(data)
-      toast.success('Headmaster account created!')
-      setShowForm(false)
-      reset()
-      refetch()
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to create user')
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  const toggleActive = async (user) => {
-    try {
-      await userApi.toggleActive(user.id)
-      toast.success(`User ${user.active ? 'deactivated' : 'activated'}`)
-      refetch()
-    } catch (err) { toast.error(err.response?.data?.message || 'Failed to update user status') }
-  }
-
-  const handleDelete = async () => {
-    setSubmitting(true)
-    try {
-      await userApi.delete(deleting.id)
-      toast.success('User removed')
-      setDeleting(null)
-      refetch()
-    } catch (err) { toast.error(err.response?.data?.message || 'Failed to remove user') }
-    finally { setSubmitting(false) }
-  }
-
-  const handleAssignSchool = async () => {
-    setSubmitting(true)
-    try {
-      await userApi.assignSchool(assigningSchool.id, newSchoolId ? parseInt(newSchoolId) : null)
-      toast.success('School assigned successfully')
-      setAssigningSchool(null)
-      setNewSchoolId('')
-      refetch()
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to assign school')
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  const UserRow = ({ user }) => (
-    <tr key={user.id}>
+// Defined OUTSIDE to prevent remounting on every render
+function UserRow({ user, onAssign, onToggle, onDelete }) {
+  return (
+    <tr>
       <td>
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0">
@@ -105,28 +44,18 @@ export default function UsersPage() {
       <td>
         {user.role !== 'ADMIN' && (
           <div className="flex items-center gap-1">
-            <button
-              onClick={() => { setAssigningSchool(user); setNewSchoolId(user.school?.id?.toString() || '') }}
-              className="btn-ghost btn-sm p-1.5"
-              title="Assign School"
-            >
+            <button onClick={() => onAssign(user)} className="btn-ghost btn-sm p-1.5" title="Assign School">
               <School className="w-4 h-4 text-blue-400" />
             </button>
-            <button
-              onClick={() => toggleActive(user)}
-              className="btn-ghost btn-sm p-1.5"
-              title={user.active ? 'Deactivate' : 'Activate'}
-            >
+            <button onClick={() => onToggle(user)} className="btn-ghost btn-sm p-1.5"
+              title={user.active ? 'Deactivate' : 'Activate'}>
               {user.active
                 ? <ToggleRight className="w-4 h-4 text-green-500" />
                 : <ToggleLeft className="w-4 h-4 text-gray-400" />
               }
             </button>
-            <button
-              onClick={() => setDeleting(user)}
-              className="btn-ghost btn-sm p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50"
-              title="Delete"
-            >
+            <button onClick={() => onDelete(user)}
+              className="btn-ghost btn-sm p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50" title="Delete">
               <Trash2 className="w-4 h-4" />
             </button>
           </div>
@@ -134,6 +63,83 @@ export default function UsersPage() {
       </td>
     </tr>
   )
+}
+
+const TABLE_HEADERS = (
+  <tr>
+    <th>Name</th><th>Email</th><th>Role</th><th>School</th>
+    <th>Status</th><th>Joined</th><th>Actions</th>
+  </tr>
+)
+
+export default function UsersPage() {
+  const { data: users, loading, refetch } = useApi(() => userApi.getAll())
+  const { data: schools } = useApi(() => schoolApi.getAll())
+  const [showForm,        setShowForm]        = useState(false)
+  const [deleting,        setDeleting]        = useState(null)
+  const [assigningSchool, setAssigningSchool] = useState(null)
+  const [newSchoolId,     setNewSchoolId]     = useState('')
+  const [submitting,      setSubmitting]      = useState(false)
+
+  const { register, handleSubmit, reset, formState: { errors } } = useForm()
+
+  const headmasters = (users || []).filter(u => u.role === 'HEADMASTER')
+  const admins      = (users || []).filter(u => u.role === 'ADMIN')
+
+  const onAssign = (user) => {
+    setAssigningSchool(user)
+    setNewSchoolId(user.school?.id?.toString() || '')
+  }
+
+  const onSubmit = async (data) => {
+    setSubmitting(true)
+    try {
+      await authApi.registerHeadmaster(data)
+      toast.success('Headmaster account created!')
+      setShowForm(false)
+      reset()
+      refetch()
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to create user')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const toggleActive = async (user) => {
+    try {
+      await userApi.toggleActive(user.id)
+      toast.success(`User ${user.active ? 'deactivated' : 'activated'}`)
+      refetch()
+    } catch (err) { toast.error(err.response?.data?.message || 'Failed to update') }
+  }
+
+  const handleDelete = async () => {
+    setSubmitting(true)
+    try {
+      await userApi.delete(deleting.id)
+      toast.success('User removed')
+      setDeleting(null)
+      refetch()
+    } catch (err) { toast.error(err.response?.data?.message || 'Failed to remove user') }
+    finally { setSubmitting(false) }
+  }
+
+  const handleAssignSchool = async () => {
+    setSubmitting(true)
+    try {
+      const schoolId = newSchoolId ? parseInt(newSchoolId) : null
+      await userApi.assignSchool(assigningSchool.id, schoolId)
+      toast.success('School assigned successfully')
+      setAssigningSchool(null)
+      setNewSchoolId('')
+      refetch()
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to assign school')
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   return (
     <div className="page-transition">
@@ -169,13 +175,12 @@ export default function UsersPage() {
             ) : (
               <div className="table-container">
                 <table className="table">
-                  <thead>
-                    <tr>
-                      <th>Name</th><th>Email</th><th>Role</th><th>School</th>
-                      <th>Status</th><th>Joined</th><th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>{headmasters.map(u => <UserRow key={u.id} user={u} />)}</tbody>
+                  <thead>{TABLE_HEADERS}</thead>
+                  <tbody>
+                    {headmasters.map(u => (
+                      <UserRow key={u.id} user={u} onAssign={onAssign} onToggle={toggleActive} onDelete={setDeleting} />
+                    ))}
+                  </tbody>
                 </table>
               </div>
             )}
@@ -189,13 +194,12 @@ export default function UsersPage() {
               </h2>
               <div className="table-container">
                 <table className="table">
-                  <thead>
-                    <tr>
-                      <th>Name</th><th>Email</th><th>Role</th><th>School</th>
-                      <th>Status</th><th>Joined</th><th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>{admins.map(u => <UserRow key={u.id} user={u} />)}</tbody>
+                  <thead>{TABLE_HEADERS}</thead>
+                  <tbody>
+                    {admins.map(u => (
+                      <UserRow key={u.id} user={u} onAssign={onAssign} onToggle={toggleActive} onDelete={setDeleting} />
+                    ))}
+                  </tbody>
                 </table>
               </div>
             </div>
@@ -244,7 +248,7 @@ export default function UsersPage() {
           </div>
           <div className="form-group">
             <label className="label">Assign School</label>
-            <select className="input" {...register('schoolId', { valueAsNumber: true })}>
+            <select className="input" {...register('schoolId')}>
               <option value="">Select a school (optional)</option>
               {(schools || []).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
