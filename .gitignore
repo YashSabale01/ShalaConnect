@@ -30,6 +30,8 @@ Thumbs.db
 
 # Local scripts
 *.bat
+*.pem
+userdata.sh
 
 # Architecture files
 architecture.drawio
