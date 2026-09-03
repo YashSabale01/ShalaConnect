@@ -120,7 +120,7 @@ public class MeetingServiceImpl implements MeetingService {
     }
 
     private Meeting findById(Long id) {
-        return meetingRepository.findById(id)
+        return meetingRepository.findByIdWithDetails(id)
             .orElseThrow(() -> new ResourceNotFoundException("Meeting", id));
     }
 

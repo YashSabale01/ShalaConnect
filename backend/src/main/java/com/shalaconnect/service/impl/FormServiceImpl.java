@@ -188,7 +188,7 @@ public class FormServiceImpl implements FormService {
     }
 
     private DynamicForm findById(Long id) {
-        return formRepository.findById(id)
+        return formRepository.findByIdWithCreator(id)
             .orElseThrow(() -> new ResourceNotFoundException("Form", id));
     }
 

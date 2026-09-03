@@ -38,7 +38,7 @@ public class GrDocumentServiceImpl implements GrDocumentService {
     @Transactional(readOnly = true)
     public GrDocumentResponse getGrDocumentById(Long id, String currentUserEmail) {
         Long userId = getUserIdByEmail(currentUserEmail);
-        GrDocument doc = grDocumentRepository.findById(id)
+        GrDocument doc = grDocumentRepository.findByIdWithDetails(id)
             .orElseThrow(() -> new ResourceNotFoundException("GR Document", id));
         return GrDocumentResponse.from(doc, userId);
     }
@@ -87,11 +87,10 @@ public class GrDocumentServiceImpl implements GrDocumentService {
     @Override
     @Transactional
     public GrDocumentResponse markAsSeen(Long id, String userEmail) {
-        GrDocument doc = grDocumentRepository.findById(id)
+        GrDocument doc = grDocumentRepository.findByIdWithDetails(id)
             .orElseThrow(() -> new ResourceNotFoundException("GR Document", id));
         User user = userRepository.findByEmail(userEmail)
             .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-
         doc.getSeenBy().add(user);
         grDocumentRepository.save(doc);
         return GrDocumentResponse.from(doc, user.getId());
@@ -100,7 +99,7 @@ public class GrDocumentServiceImpl implements GrDocumentService {
     @Override
     @Transactional
     public void deleteGrDocument(Long id) {
-        GrDocument doc = grDocumentRepository.findById(id)
+        GrDocument doc = grDocumentRepository.findByIdWithDetails(id)
             .orElseThrow(() -> new ResourceNotFoundException("GR Document", id));
         doc.setActive(false);
         grDocumentRepository.save(doc);

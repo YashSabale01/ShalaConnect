@@ -12,10 +12,10 @@ import java.util.Optional;
 @Repository
 public interface EventImplementationRepository extends JpaRepository<EventImplementation, Long> {
 
-    @Query("SELECT i FROM EventImplementation i LEFT JOIN FETCH i.event LEFT JOIN FETCH i.school LEFT JOIN FETCH i.submittedBy WHERE i.event.id = :eventId")
+    @Query("SELECT DISTINCT i FROM EventImplementation i LEFT JOIN FETCH i.event LEFT JOIN FETCH i.school LEFT JOIN FETCH i.submittedBy LEFT JOIN FETCH i.photoPaths WHERE i.event.id = :eventId")
     List<EventImplementation> findByEventId(@Param("eventId") Long eventId);
 
-    @Query("SELECT i FROM EventImplementation i LEFT JOIN FETCH i.event LEFT JOIN FETCH i.school LEFT JOIN FETCH i.submittedBy WHERE i.event.id = :eventId AND i.school.id = :schoolId")
+    @Query("SELECT DISTINCT i FROM EventImplementation i LEFT JOIN FETCH i.event LEFT JOIN FETCH i.school LEFT JOIN FETCH i.submittedBy LEFT JOIN FETCH i.photoPaths WHERE i.event.id = :eventId AND i.school.id = :schoolId")
     Optional<EventImplementation> findByEventIdAndSchoolId(@Param("eventId") Long eventId, @Param("schoolId") Long schoolId);
 
     List<EventImplementation> findBySubmittedById(Long userId);

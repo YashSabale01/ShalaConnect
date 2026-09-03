@@ -12,10 +12,10 @@ import java.util.Optional;
 @Repository
 public interface EventRepository extends JpaRepository<Event, Long> {
 
-    @Query("SELECT e FROM Event e LEFT JOIN FETCH e.createdBy WHERE e.active = true ORDER BY e.eventDate DESC")
+    @Query("SELECT DISTINCT e FROM Event e LEFT JOIN FETCH e.createdBy LEFT JOIN FETCH e.mediaPaths WHERE e.active = true ORDER BY e.eventDate DESC")
     List<Event> findByActiveTrueOrderByEventDateDesc();
 
-    @Query("SELECT e FROM Event e LEFT JOIN FETCH e.createdBy WHERE e.id = :id")
+    @Query("SELECT DISTINCT e FROM Event e LEFT JOIN FETCH e.createdBy LEFT JOIN FETCH e.mediaPaths WHERE e.id = :id")
     Optional<Event> findByIdWithCreator(@Param("id") Long id);
 
     List<Event> findByEventDateBetweenAndActiveTrue(LocalDate start, LocalDate end);
