@@ -33,7 +33,7 @@ public class DynamicForm {
     @Column(nullable = false)
     private boolean active = true;
 
-    @OneToMany(mappedBy = "form", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "form", fetch = FetchType.LAZY)
     @Builder.Default
     private List<FormResponse> responses = new ArrayList<>();
 

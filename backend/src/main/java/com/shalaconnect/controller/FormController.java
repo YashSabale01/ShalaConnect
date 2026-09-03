@@ -49,7 +49,6 @@ public class FormController {
 
     @PostMapping("/{id}/respond")
     @PreAuthorize("hasRole('HEADMASTER')")
-    @org.springframework.transaction.annotation.Transactional
     public ResponseEntity<ApiResponse<Map<String, Object>>> respondToForm(
             @PathVariable Long id,
             @RequestBody Map<String, String> body,

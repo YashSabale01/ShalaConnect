@@ -17,7 +17,7 @@ public interface EventImplementationRepository extends JpaRepository<EventImplem
     List<EventImplementation> findByEventId(@Param("eventId") Long eventId);
 
     // For single entity — fetch associations only
-    @Query("SELECT i FROM EventImplementation i LEFT JOIN FETCH i.school LEFT JOIN FETCH i.submittedBy WHERE i.event.id = :eventId AND i.school.id = :schoolId")
+    @Query("SELECT i FROM EventImplementation i LEFT JOIN FETCH i.event LEFT JOIN FETCH i.school LEFT JOIN FETCH i.submittedBy WHERE i.event.id = :eventId AND i.school.id = :schoolId")
     Optional<EventImplementation> findByEventIdAndSchoolId(@Param("eventId") Long eventId, @Param("schoolId") Long schoolId);
 
     // Fetch photoPaths ElementCollection separately (called after findByEventIdAndSchoolId)
