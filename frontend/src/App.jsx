@@ -19,6 +19,7 @@ import MeetingsPage      from './pages/admin/MeetingsPage'
 import EventsPage        from './pages/admin/EventsPage'
 import FormsPage         from './pages/admin/FormsPage'
 import UsersPage         from './pages/admin/UsersPage'
+import AdminProfilePage  from './pages/admin/AdminProfilePage'
 
 // Headmaster pages
 import HeadmasterDashboard from './pages/headmaster/HeadmasterDashboard'
@@ -66,6 +67,7 @@ export default function App() {
                   <Route path="/admin/events"         element={<EventsPage />} />
                   <Route path="/admin/forms"          element={<FormsPage />} />
                   <Route path="/admin/users"          element={<UsersPage />} />
+                  <Route path="/admin/profile"        element={<AdminProfilePage />} />
                 </Route>
               </Route>
 

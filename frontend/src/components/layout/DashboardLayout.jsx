@@ -25,6 +25,7 @@ export default function DashboardLayout({ role }) {
     { to: '/admin/events',      icon: BookOpen,        label: t('events') },
     { to: '/admin/forms',       icon: ClipboardList,   label: t('forms') },
     { to: '/admin/users',       icon: Users,           label: t('users') },
+    { to: '/admin/profile',     icon: UserCircle,      label: t('profile') },
   ]
 
   const headmasterNav = [
@@ -94,17 +95,23 @@ export default function DashboardLayout({ role }) {
 
       {/* User section */}
       <div className="border-t border-gray-100 p-3 bg-gray-50/50">
-        <div className="flex items-center gap-3 px-2 py-2 rounded-lg mb-1">
-          <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0 text-primary-700 font-bold text-xs">
+        <Link
+          to={role === 'ADMIN' ? '/admin/profile' : '/headmaster/profile'}
+          onClick={() => setSidebarOpen(false)}
+          className="flex items-center gap-3 px-2 py-2 rounded-lg mb-1 hover:bg-gray-100/70 transition-colors group"
+          title={t('profile')}
+        >
+          <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0 text-primary-700 font-bold text-xs group-hover:scale-105 transition-transform">
             {user?.name?.[0]?.toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-sm font-semibold text-gray-900 truncate">{user?.name}</div>
+            <div className="text-sm font-semibold text-gray-900 truncate group-hover:text-primary-600 transition-colors">{user?.name}</div>
             <div className="text-xs text-gray-400 truncate">
               {role === 'HEADMASTER' && user?.school?.name ? user.school.name : user?.email}
             </div>
           </div>
-        </div>
+        </Link>
+
         <button
           onClick={handleLogout}
           className="sidebar-link sidebar-link-inactive w-full text-red-600 hover:bg-red-50 hover:text-red-700 rounded-xl"
