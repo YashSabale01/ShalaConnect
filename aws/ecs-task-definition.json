@@ -1,8 +1,0 @@
-# ecs-task-definition.json is NOT used by the pipeline.
-#
-# The baseline task definition is created and managed by CloudFormation
-# (aws/cloudformation.yml → ECSTaskDefinition resource).
-#
-# On every deploy, GitHub Actions fetches the live task definition from ECS
-# via `aws ecs describe-task-definition`, injects the new image SHAs,
-# and registers a new revision — no local file needed.
