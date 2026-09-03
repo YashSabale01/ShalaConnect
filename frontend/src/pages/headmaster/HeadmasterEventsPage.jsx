@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef } from 'react'
 import { eventApi } from '../../services/api'
 import { useApi } from '../../hooks/useApi'
+import { useAuth } from '../../context/AuthContext'
 import EmptyState from '../../components/ui/EmptyState'
 import { ListSkeleton } from '../../components/ui/Skeleton'
 import Modal from '../../components/ui/Modal'
@@ -18,6 +19,8 @@ const TYPE_COLORS = {
 }
 
 export default function HeadmasterEventsPage() {
+  const { user } = useAuth()
+  const hasSchool = !!user?.school?.id
   const { data: events, loading: eventsLoading } = useApi(() => eventApi.getAll())
 
   const [implCache,   setImplCache]   = useState({})   // { [eventId]: impl | null }
@@ -64,6 +67,10 @@ export default function HeadmasterEventsPage() {
   }
 
   const openModal = async (event) => {
+    if (!hasSchool) {
+      toast.error('You must be assigned to a school by the administrator to submit event reports.')
+      return
+    }
     const impl = implCacheRef.current[event.id] !== undefined
       ? implCacheRef.current[event.id]
       : await fetchImpl(event.id)
@@ -85,6 +92,10 @@ export default function HeadmasterEventsPage() {
   }
 
   const handlePhoto = async (eventId, file) => {
+    if (!hasSchool) {
+      toast.error('You must be assigned to a school by the administrator to upload photos.')
+      return
+    }
     setUploading(eventId)
     try {
       const res = await eventApi.uploadImplPhoto(eventId, file)
@@ -107,6 +118,15 @@ export default function HeadmasterEventsPage() {
           <p className="page-subtitle">Submit your school's implementation report for each event</p>
         </div>
       </div>
+
+      {!hasSchool && (
+        <div className="mb-5 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+          <div className="text-sm text-amber-800">
+            <span className="font-semibold">School Assignment Required:</span> Your account is not currently assigned to a school. Please contact the administrator to assign your school before submitting event reports.
+          </div>
+        </div>
+      )}
 
       {sorted.length === 0 ? (
         <EmptyState

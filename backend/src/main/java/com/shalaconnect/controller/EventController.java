@@ -20,6 +20,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -95,6 +96,7 @@ public class EventController {
     /** Headmaster submits or updates their school's implementation for an event */
     @PostMapping("/{id}/implement")
     @PreAuthorize("hasRole('HEADMASTER')")
+    @Transactional
     public ResponseEntity<ApiResponse<EventImplementationResponse>> submitImplementation(
             @PathVariable Long id,
             @RequestBody Map<String, String> body,
@@ -102,7 +104,7 @@ public class EventController {
         User user = userRepository.findByEmailWithSchool(userDetails.getUsername())
             .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         if (user.getSchool() == null)
-            throw new BadRequestException("You are not assigned to a school");
+            throw new BadRequestException("You are not assigned to a school. Please contact your administrator to assign a school to your account.");
 
         EventImplementation impl = implRepository
             .findByEventIdAndSchoolId(id, user.getSchool().getId())
@@ -115,7 +117,7 @@ public class EventController {
         impl.setDescription(body.get("description"));
         impl.setSubmittedBy(user);
         impl = implRepository.saveAndFlush(impl);
-        // Re-fetch with photoPaths loaded
+        // Re-fetch with all associations and photoPaths loaded
         impl = implRepository.findByIdWithPhotos(impl.getId()).orElse(impl);
         return ResponseEntity.ok(ApiResponse.success("Implementation saved",
             EventImplementationResponse.from(impl)));
@@ -124,6 +126,7 @@ public class EventController {
     /** Headmaster uploads a photo for their implementation */
     @PostMapping("/{id}/implement/photo")
     @PreAuthorize("hasRole('HEADMASTER')")
+    @Transactional
     public ResponseEntity<ApiResponse<EventImplementationResponse>> uploadImplPhoto(
             @PathVariable Long id,
             @RequestParam("file") MultipartFile file,
@@ -135,7 +138,7 @@ public class EventController {
             User user = userRepository.findByEmailWithSchool(userDetails.getUsername())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
             if (user.getSchool() == null)
-                throw new BadRequestException("You are not assigned to a school");
+                throw new BadRequestException("You are not assigned to a school. Please contact your administrator to assign a school to your account.");
 
             EventImplementation impl = implRepository
                 .findByEventIdAndSchoolId(id, user.getSchool().getId())
@@ -147,7 +150,7 @@ public class EventController {
 
             impl.getPhotoPaths().add(path);
             impl = implRepository.saveAndFlush(impl);
-            // Re-fetch with photoPaths loaded
+            // Re-fetch with all associations and photoPaths loaded
             impl = implRepository.findByIdWithPhotos(impl.getId()).orElse(impl);
             return ResponseEntity.ok(ApiResponse.success("Photo uploaded",
                 EventImplementationResponse.from(impl)));
@@ -161,10 +164,10 @@ public class EventController {
     /** Admin monitors all schools' implementations for an event */
     @GetMapping("/{id}/implementations")
     @PreAuthorize("hasRole('ADMIN')")
+    @Transactional(readOnly = true)
     public ResponseEntity<ApiResponse<List<EventImplementationResponse>>> getImplementations(
             @PathVariable Long id) {
         List<EventImplementationResponse> list = implRepository.findByEventId(id).stream()
-            .map(impl -> implRepository.findByIdWithPhotos(impl.getId()).orElse(impl))
             .map(EventImplementationResponse::from)
             .toList();
         return ResponseEntity.ok(ApiResponse.success(list));
@@ -173,6 +176,7 @@ public class EventController {
     /** Headmaster gets their own implementation for an event */
     @GetMapping("/{id}/my-implementation")
     @PreAuthorize("hasRole('HEADMASTER')")
+    @Transactional(readOnly = true)
     public ResponseEntity<ApiResponse<EventImplementationResponse>> getMyImplementation(
             @PathVariable Long id,
             @AuthenticationPrincipal UserDetails userDetails) {
@@ -181,7 +185,6 @@ public class EventController {
         if (user.getSchool() == null)
             return ResponseEntity.ok(ApiResponse.success(null));
         return implRepository.findByEventIdAndSchoolId(id, user.getSchool().getId())
-            .map(impl -> implRepository.findByIdWithPhotos(impl.getId()).orElse(impl))
             .map(impl -> ResponseEntity.ok(ApiResponse.success(EventImplementationResponse.from(impl))))
             .orElse(ResponseEntity.ok(ApiResponse.success(null)));
     }

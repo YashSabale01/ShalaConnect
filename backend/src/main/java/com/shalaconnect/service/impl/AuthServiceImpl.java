@@ -74,7 +74,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional(readOnly = true)
     public AuthResponse.UserDto getCurrentUser(String email) {
-        User user = userRepository.findByEmail(email)
+        User user = userRepository.findByEmailWithSchool(email)
             .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         return AuthResponse.fromUser(user);
     }

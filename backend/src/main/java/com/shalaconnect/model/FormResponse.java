@@ -26,7 +26,7 @@ public class FormResponse {
     @JoinColumn(name = "school_id")
     private School school;
 
-    @Column(columnDefinition = "JSON", nullable = false)
+    @Column(columnDefinition = "TEXT", nullable = false)
     private String answersJson; // JSON object of field_id -> answer
 
     @Column(updatable = false)

@@ -30,8 +30,10 @@ export default function HeadmasterFormsPage() {
 
   const getFields = () => {
     if (!activeForm?.fieldsJson) return []
-    try { return JSON.parse(activeForm.fieldsJson) }
-    catch { return [] }
+    if (Array.isArray(activeForm.fieldsJson)) return activeForm.fieldsJson
+    try {
+      return typeof activeForm.fieldsJson === 'string' ? JSON.parse(activeForm.fieldsJson) : []
+    } catch { return [] }
   }
 
   const validate = () => {

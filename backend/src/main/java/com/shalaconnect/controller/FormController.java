@@ -1,5 +1,6 @@
 package com.shalaconnect.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.shalaconnect.dto.request.FormRequest;
 import com.shalaconnect.dto.response.ApiResponse;
 import com.shalaconnect.service.FormService;
@@ -22,6 +23,7 @@ import java.util.Map;
 public class FormController {
 
     private final FormService formService;
+    private final ObjectMapper objectMapper;
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getAllForms(
@@ -51,11 +53,27 @@ public class FormController {
     @PreAuthorize("hasRole('HEADMASTER')")
     public ResponseEntity<ApiResponse<Map<String, Object>>> respondToForm(
             @PathVariable Long id,
-            @RequestBody Map<String, String> body,
+            @RequestBody Map<String, Object> body,
             @AuthenticationPrincipal UserDetails userDetails) {
-        String answersJson = body.get("answersJson");
-        if (answersJson == null || answersJson.isBlank()) {
+        Object answersObj = body.get("answersJson");
+        if (answersObj == null) {
+            answersObj = body.get("answers");
+        }
+        if (answersObj == null) {
             return ResponseEntity.badRequest().body(ApiResponse.error("answersJson is required"));
+        }
+        String answersJson;
+        if (answersObj instanceof String s) {
+            if (s.isBlank()) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("answersJson cannot be blank"));
+            }
+            answersJson = s;
+        } else {
+            try {
+                answersJson = objectMapper.writeValueAsString(answersObj);
+            } catch (Exception e) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("Invalid answers format: " + e.getMessage()));
+            }
         }
         Map<String, Object> result = formService.submitFormResponse(id, answersJson, userDetails.getUsername());
         return ResponseEntity.ok(ApiResponse.success("Response submitted", result));
