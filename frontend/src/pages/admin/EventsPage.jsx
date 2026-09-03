@@ -65,12 +65,11 @@ function ImplementationsPanel({ event, totalSchools, onClose }) {
                     </p>
                     <div className="flex gap-2 flex-wrap">
                       {impl.photoPaths.map((path, i) => (
-                        <a key={i} href={`/uploads/${path}`} target="_blank" rel="noreferrer">
+                        <a key={i} href={`/uploads/${path}`} target="_blank" rel="noreferrer" className="group block">
                           <img
                             src={`/uploads/${path}`}
                             alt={`photo ${i + 1}`}
-                            className="w-24 h-24 rounded-lg object-cover border border-gray-200 hover:opacity-80 transition-opacity cursor-pointer"
-                            onError={e => { e.target.style.display = 'none' }}
+                            className="w-24 h-24 rounded-lg object-cover border border-gray-200 hover:opacity-80 transition-opacity cursor-pointer shadow-sm bg-gray-50"
                           />
                         </a>
                       ))}

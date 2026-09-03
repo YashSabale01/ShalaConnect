@@ -216,10 +216,9 @@ export default function HeadmasterEventsPage() {
                             </p>
                             <div className="flex gap-2 flex-wrap">
                               {impl.photoPaths.map((path, i) => (
-                                <a key={i} href={`/uploads/${path}`} target="_blank" rel="noreferrer">
+                                <a key={i} href={`/uploads/${path}`} target="_blank" rel="noreferrer" className="group block">
                                   <img src={`/uploads/${path}`} alt={`impl photo ${i + 1}`}
-                                    className="w-20 h-20 rounded-lg object-cover border border-gray-200 hover:opacity-80 transition-opacity"
-                                    onError={e => { e.target.style.display = 'none' }} />
+                                    className="w-20 h-20 rounded-lg object-cover border border-gray-200 hover:opacity-80 transition-opacity cursor-pointer shadow-sm bg-gray-50" />
                                 </a>
                               ))}
                             </div>
@@ -295,9 +294,10 @@ export default function HeadmasterEventsPage() {
                 {implCache[modalEvent.id]?.photoPaths?.length > 0 && (
                   <div className="flex gap-2 mt-2 flex-wrap">
                     {implCache[modalEvent.id].photoPaths.map((path, i) => (
-                      <img key={i} src={`/uploads/${path}`} alt={`photo ${i + 1}`}
-                        className="w-16 h-16 rounded-lg object-cover border border-gray-200"
-                        onError={e => { e.target.style.display = 'none' }} />
+                      <a key={i} href={`/uploads/${path}`} target="_blank" rel="noreferrer" className="group block">
+                        <img src={`/uploads/${path}`} alt={`photo ${i + 1}`}
+                          className="w-16 h-16 rounded-lg object-cover border border-gray-200 hover:opacity-80 transition-opacity cursor-pointer shadow-sm bg-gray-50" />
+                      </a>
                     ))}
                   </div>
                 )}

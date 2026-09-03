@@ -20,7 +20,7 @@ public class EventImplementationResponse {
 
     public static EventImplementationResponse from(EventImplementation i) {
         List<String> photos;
-        try { photos = i.getPhotoPaths() != null ? new java.util.ArrayList<>(i.getPhotoPaths()) : new java.util.ArrayList<>(); }
+        try { photos = i.getPhotoPaths() != null ? new java.util.ArrayList<>(new java.util.LinkedHashSet<>(i.getPhotoPaths())) : new java.util.ArrayList<>(); }
         catch (Exception e) { photos = new java.util.ArrayList<>(); }
         return EventImplementationResponse.builder()
             .id(i.getId())
