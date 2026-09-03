@@ -3,6 +3,9 @@ name: ShalaConnect CI/CD Deployment
 on:
   push:
     branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -10,13 +13,32 @@ permissions:
 jobs:
   # ─── Job 1: Build & Deploy Backend (Spring Boot 21 to ECS Fargate) ──────────
   deploy-backend:
-    name: Build & Deploy Backend to ECS
+    name: Build & Deploy Backend
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Check AWS Secrets Availability
+        id: aws_check
+        env:
+          AWS_KEY: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          if [ -n "$AWS_KEY" ] && [ -n "$AWS_SECRET" ]; then
+            echo "has_aws=true" >> $GITHUB_OUTPUT
+            echo "AWS credentials detected. Full build + deploy will execute."
+          else
+            echo "has_aws=false" >> $GITHUB_OUTPUT
+            echo "::notice title=AWS Deployment Skipped::AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY not configured in GitHub Secrets. Running container build validation only."
+          fi
+
+      - name: Build Backend Docker Image (Validation)
+        run: |
+          docker build -t shalaconnect-backend:${{ github.sha }} ./backend
+
       - name: Configure AWS Credentials
+        if: steps.aws_check.outputs.has_aws == 'true'
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -24,21 +46,24 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION || 'ap-south-1' }}
 
       - name: Log in to Amazon ECR
+        if: steps.aws_check.outputs.has_aws == 'true'
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build, Tag, and Push Backend Image to ECR
+      - name: Tag and Push Backend Image to ECR
+        if: steps.aws_check.outputs.has_aws == 'true'
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY || 'shalaconnect-backend' }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./backend
-          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker tag shalaconnect-backend:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker tag shalaconnect-backend:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
       - name: Trigger ECS Fargate Rolling Deployment
+        if: steps.aws_check.outputs.has_aws == 'true'
         run: |
           aws ecs update-service \
             --cluster ${{ secrets.ECS_CLUSTER_NAME || 'shalaconnect-prod-cluster' }} \
@@ -47,11 +72,26 @@ jobs:
 
   # ─── Job 2: Build & Deploy Frontend (React SPA to S3 + CloudFront CDN) ──────
   deploy-frontend:
-    name: Build & Deploy Frontend to S3 + CloudFront
+    name: Build & Deploy Frontend
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+
+      - name: Check AWS Secrets Availability
+        id: aws_check
+        env:
+          AWS_KEY: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          S3_BUCKET: ${{ secrets.FRONTEND_S3_BUCKET }}
+        run: |
+          if [ -n "$AWS_KEY" ] && [ -n "$AWS_SECRET" ] && [ -n "$S3_BUCKET" ]; then
+            echo "has_aws=true" >> $GITHUB_OUTPUT
+            echo "AWS credentials & S3 bucket detected. Full build + deploy will execute."
+          else
+            echo "has_aws=false" >> $GITHUB_OUTPUT
+            echo "::notice title=AWS S3 Deployment Skipped::AWS_ACCESS_KEY_ID or FRONTEND_S3_BUCKET not configured in GitHub Secrets. Running Vite frontend build validation only."
+          fi
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -71,6 +111,7 @@ jobs:
         run: npm run build
 
       - name: Configure AWS Credentials
+        if: steps.aws_check.outputs.has_aws == 'true'
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -78,11 +119,12 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION || 'ap-south-1' }}
 
       - name: Sync Static Assets to Frontend S3 Bucket
+        if: steps.aws_check.outputs.has_aws == 'true'
         run: |
           aws s3 sync frontend/dist/ s3://${{ secrets.FRONTEND_S3_BUCKET }} --delete
 
       - name: Invalidate CloudFront CDN Cache
-        if: env.CLOUDFRONT_DISTRIBUTION_ID != ''
+        if: steps.aws_check.outputs.has_aws == 'true' && secrets.CLOUDFRONT_DISTRIBUTION_ID != ''
         env:
           CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
         run: |
