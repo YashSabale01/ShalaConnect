@@ -35,7 +35,7 @@ public class EventServiceImpl implements EventService {
     @Override
     @Transactional(readOnly = true)
     public EventResponse getEventById(Long id) {
-        return EventResponse.from(findById(id));
+        return EventResponse.from(findByIdWithCreator(id));
     }
 
     @Override
@@ -54,55 +54,61 @@ public class EventServiceImpl implements EventService {
             .active(true)
             .build();
 
-        return EventResponse.from(eventRepository.save(event));
+        event = eventRepository.save(event);
+        return EventResponse.from(eventRepository.findByIdWithCreator(event.getId())
+            .orElse(event));
     }
 
     @Override
     @Transactional
     public EventResponse updateEvent(Long id, EventRequest request) {
-        Event event = findById(id);
+        Event event = findByIdWithCreator(id);
         event.setTitle(request.getTitle());
         if (request.getDescription() != null) event.setDescription(request.getDescription());
         event.setEventDate(request.getEventDate());
         event.setVenue(request.getVenue());
         event.setEventType(request.getEventType());
-        return EventResponse.from(eventRepository.save(event));
+        eventRepository.save(event);
+        return EventResponse.from(findByIdWithCreator(id));
     }
 
     @Override
     @Transactional
     public EventResponse uploadEventMedia(Long id, MultipartFile file) {
         fileStorageService.validateImageFile(file);
-        Event event = findById(id);
+        Event event = findByIdWithCreator(id);
         String path = fileStorageService.storeFile(file, "events/media");
         event.getMediaPaths().add(path);
-        return EventResponse.from(eventRepository.save(event));
+        eventRepository.save(event);
+        return EventResponse.from(findByIdWithCreator(id));
     }
 
     @Override
     @Transactional
     public EventResponse uploadEventReport(Long id, MultipartFile file) {
         fileStorageService.validateDocumentFile(file);
-        Event event = findById(id);
+        Event event = findByIdWithCreator(id);
         if (event.getReportPath() != null) {
             fileStorageService.deleteFile(event.getReportPath());
         }
         String path = fileStorageService.storeFile(file, "events/reports");
         event.setReportPath(path);
         event.setReportFileName(file.getOriginalFilename());
-        return EventResponse.from(eventRepository.save(event));
+        eventRepository.save(event);
+        return EventResponse.from(findByIdWithCreator(id));
     }
 
     @Override
     @Transactional
     public void deleteEvent(Long id) {
-        Event event = findById(id);
+        Event event = eventRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Event", id));
         event.setActive(false);
         eventRepository.save(event);
     }
 
-    private Event findById(Long id) {
-        return eventRepository.findById(id)
+    private Event findByIdWithCreator(Long id) {
+        return eventRepository.findByIdWithCreator(id)
             .orElseThrow(() -> new ResourceNotFoundException("Event", id));
     }
 }

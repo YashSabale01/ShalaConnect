@@ -88,7 +88,7 @@ public class FormServiceImpl implements FormService {
     @Transactional
     public Map<String, Object> submitFormResponse(Long formId, String answersJson, String submitterEmail) {
         DynamicForm form = findById(formId);
-        User submitter = userRepository.findByEmail(submitterEmail)
+        User submitter = userRepository.findByEmailWithSchool(submitterEmail)
             .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         if (responseRepository.existsByFormIdAndSubmittedById(formId, submitter.getId())) {

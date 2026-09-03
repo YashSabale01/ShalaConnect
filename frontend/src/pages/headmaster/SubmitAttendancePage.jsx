@@ -30,7 +30,13 @@ export default function SubmitAttendancePage() {
   })
 
   const today = new Date().toLocaleDateString('en-CA') // yyyy-MM-dd in local timezone
-  const alreadySubmittedToday = (records || []).some(r => r.attendanceDate === today)
+  const alreadySubmittedToday = (records || []).some(r => {
+    // attendanceDate may come as "2025-01-15" string or Date object — normalize both
+    const d = r.attendanceDate
+    if (!d) return false
+    if (typeof d === 'string') return d.slice(0, 10) === today
+    return new Date(d).toLocaleDateString('en-CA') === today
+  })
 
   const totalStudents = parseInt(watch('totalStudents')) || 0
   const presentStudents = parseInt(watch('presentStudents')) || 0

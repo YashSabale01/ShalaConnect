@@ -99,11 +99,11 @@ public class EventController {
             @PathVariable Long id,
             @RequestBody Map<String, String> body,
             @AuthenticationPrincipal UserDetails userDetails) {
-        User user = userRepository.findByEmail(userDetails.getUsername())
+        User user = userRepository.findByEmailWithSchool(userDetails.getUsername())
             .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         if (user.getSchool() == null)
             throw new BadRequestException("You are not assigned to a school");
-        Event event = eventRepository.findById(id)
+        Event event = eventRepository.findByIdWithCreator(id)
             .orElseThrow(() -> new ResourceNotFoundException("Event", id));
 
         EventImplementation impl = implRepository
@@ -125,11 +125,11 @@ public class EventController {
             @RequestParam("file") MultipartFile file,
             @AuthenticationPrincipal UserDetails userDetails) {
         fileStorageService.validateImageFile(file);
-        User user = userRepository.findByEmail(userDetails.getUsername())
+        User user = userRepository.findByEmailWithSchool(userDetails.getUsername())
             .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         if (user.getSchool() == null)
             throw new BadRequestException("You are not assigned to a school");
-        Event event = eventRepository.findById(id)
+        Event event = eventRepository.findByIdWithCreator(id)
             .orElseThrow(() -> new ResourceNotFoundException("Event", id));
 
         EventImplementation impl = implRepository
@@ -159,7 +159,7 @@ public class EventController {
     public ResponseEntity<ApiResponse<EventImplementationResponse>> getMyImplementation(
             @PathVariable Long id,
             @AuthenticationPrincipal UserDetails userDetails) {
-        User user = userRepository.findByEmail(userDetails.getUsername())
+        User user = userRepository.findByEmailWithSchool(userDetails.getUsername())
             .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         if (user.getSchool() == null)
             return ResponseEntity.ok(ApiResponse.success(null));

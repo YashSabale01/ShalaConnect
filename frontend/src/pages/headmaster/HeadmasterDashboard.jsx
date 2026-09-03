@@ -37,7 +37,12 @@ export default function HeadmasterDashboard() {
   }, [user])
 
   const today = new Date().toLocaleDateString('en-CA') // 'yyyy-MM-dd' in local timezone
-  const todaySubmitted = attendance.some(a => a.attendanceDate === today)
+  const todaySubmitted = attendance.some(a => {
+    const d = a.attendanceDate
+    if (!d) return false
+    if (typeof d === 'string') return d.slice(0, 10) === today
+    return new Date(d).toLocaleDateString('en-CA') === today
+  })
   const unreadGr = grDocs.filter(d => !d.seenByCurrentUser).length
   const pendingForms = forms.filter(f => !f.hasResponded).length
   const avgAttendance = attendance.length

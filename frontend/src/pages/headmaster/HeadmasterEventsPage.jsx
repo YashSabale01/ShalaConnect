@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { eventApi } from '../../services/api'
 import { useApi } from '../../hooks/useApi'
 import EmptyState from '../../components/ui/EmptyState'
@@ -30,27 +30,40 @@ export default function HeadmasterEventsPage() {
   const [saving,      setSaving]      = useState(false)
   const [uploading,   setUploading]   = useState(null) // eventId
 
+  const implCacheRef = useRef({})
+  const loadingImplRef = useRef({})
+
   const fetchImpl = useCallback(async (eventId) => {
-    if (implCache[eventId] !== undefined || loadingImpl[eventId]) return
+    if (implCacheRef.current[eventId] !== undefined || loadingImplRef.current[eventId]) return
+    loadingImplRef.current[eventId] = true
     setLoadingImpl(p => ({ ...p, [eventId]: true }))
     try {
       const res = await eventApi.getMyImplementation(eventId)
-      setImplCache(p => ({ ...p, [eventId]: res.data.data || null }))
+      const impl = res.data.data || null
+      implCacheRef.current[eventId] = impl
+      setImplCache(p => ({ ...p, [eventId]: impl }))
+      return impl
     } catch {
+      implCacheRef.current[eventId] = null
       setImplCache(p => ({ ...p, [eventId]: null }))
+      return null
     } finally {
+      loadingImplRef.current[eventId] = false
       setLoadingImpl(p => ({ ...p, [eventId]: false }))
     }
-  }, [implCache, loadingImpl])
+  }, [])
 
   const toggleExpand = (eventId) => {
     fetchImpl(eventId)
     setExpanded(p => ({ ...p, [eventId]: !p[eventId] }))
   }
 
-  const openModal = (event) => {
-    fetchImpl(event.id)
-    setDescription(implCache[event.id]?.description || '')
+  const openModal = async (event) => {
+    let impl = implCache[event.id]
+    if (impl === undefined) {
+      impl = await fetchImpl(event.id)
+    }
+    setDescription(impl?.description || '')
     setShowModal(event.id)
   }
 
@@ -65,7 +78,9 @@ export default function HeadmasterEventsPage() {
     setSaving(true)
     try {
       const res = await eventApi.submitImplementation(showModal, description.trim())
-      setImplCache(p => ({ ...p, [showModal]: res.data.data }))
+      const impl = res.data.data
+      implCacheRef.current[showModal] = impl
+      setImplCache(p => ({ ...p, [showModal]: impl }))
       toast.success('Implementation saved!')
       setShowModal(null)
     } catch (err) {
@@ -77,7 +92,9 @@ export default function HeadmasterEventsPage() {
     setUploading(eventId)
     try {
       const res = await eventApi.uploadImplPhoto(eventId, file)
-      setImplCache(p => ({ ...p, [eventId]: res.data.data }))
+      const impl = res.data.data
+      implCacheRef.current[eventId] = impl
+      setImplCache(p => ({ ...p, [eventId]: impl }))
       toast.success('Photo uploaded!')
     } catch (err) {
       toast.error(err.response?.data?.message || 'Upload failed')
@@ -147,7 +164,7 @@ export default function HeadmasterEventsPage() {
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <button
-                      onClick={() => { setDescription(implCache[event.id]?.description || ''); openModal(event) }}
+                      onClick={() => openModal(event)}
                       className={clsx('btn-sm', implemented ? 'btn-secondary' : 'btn-primary')}
                     >
                       {implemented ? 'Edit Report' : 'Submit Report'}
