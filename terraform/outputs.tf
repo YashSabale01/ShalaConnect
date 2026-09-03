@@ -37,3 +37,8 @@ output "ecs_service_name" {
   description = "ECS Service Name"
   value       = aws_ecs_service.backend.name
 }
+
+output "ecr_repository_url" {
+  description = "Amazon ECR Repository URL for Backend Docker Image"
+  value       = aws_ecr_repository.backend.repository_url
+}

@@ -6,8 +6,8 @@
 ---
 
 ## Table of Contents
-1. [Are We Using CI/CD in AWS?](#are-we-using-cicd-in-aws)
-2. [How AWS Deployment Actually Works](#how-aws-deployment-actually-works)
+1. [Unified Architecture & Deployment Logic](#unified-architecture--deployment-logic)
+2. [Automated CI/CD Pipeline (GitHub Actions)](#automated-cicd-pipeline-github-actions)
 3. [Key Features & Capabilities](#key-features--capabilities)
 4. [Tech Stack](#tech-stack)
 5. [Project Directory Structure](#project-directory-structure)
@@ -15,63 +15,68 @@
 7. [Complete REST API Reference](#complete-rest-api-reference)
 8. [Database Schema & Entities](#database-schema--entities)
 9. [Local Development (Docker Compose)](#local-development-docker-compose)
-10. [AWS Infrastructure as Code (CloudFormation & Terraform)](#aws-infrastructure-as-code)
+10. [AWS Production Deployment with Terraform](#aws-production-deployment-with-terraform)
 
 ---
 
-## Are We Using CI/CD in AWS?
+## Unified Architecture & Deployment Logic
 
-**YES, 100% AWS-Native CI/CD.**
+ShalaConnect uses **one single, standardized deployment strategy**:
+- **Infrastructure as Code (IaC)**: 100% provisioned and managed with **Terraform** ([`terraform/`](./terraform/)).
+- **Automated CI/CD**: 100% automated with **GitHub Actions** ([`.github/workflows/deploy.yml`](./.github/workflows/deploy.yml)).
+- **Zero Legacy Stacks**: All legacy CloudFormation templates, CodePipeline configs, and helper scripts have been removed in favor of this clean, decoupled architecture.
 
-- **We DO NOT use GitHub Actions** for deployments.
-- Deployments are fully automated using **AWS CodePipeline + AWS CodeBuild** configured via `aws/cloudformation.yml` and orchestrated by the root [`buildspec.yml`](./buildspec.yml).
-- **Every push to the `main` branch** on GitHub (`YashSabale01/ShalaConnect`) automatically triggers AWS CodePipeline:
-  1. **Source Stage**: AWS CodeStar Connection pulls the latest commit from `main`.
-  2. **Build Stage**: AWS CodeBuild executes [`buildspec.yml`](./buildspec.yml) in a Docker-in-Docker container:
-     - Builds the Spring Boot 21 backend container image and tags it with commit SHA and `latest`.
-     - Builds the React Vite + Nginx frontend container image and tags it with commit SHA and `latest`.
-     - Pushes both images to **Amazon ECR** repositories.
-     - Registers a new revision of the **ECS Fargate Task Definition** pulling secrets securely from **AWS Systems Manager (SSM) Parameter Store** (`/shalaconnect/DB_URL`, `/shalaconnect/JWT_SECRET`, etc.).
-     - Triggers an ECS zero-downtime rolling service deployment (`aws ecs update-service --force-new-deployment`).
-
----
-
-## How AWS Deployment Actually Works
+### Target Architecture
 
 ```
-                        git push origin main
-                                 │
-                                 ▼
-                     [ AWS CodeStar Connection ]
-                                 │
-                     [ AWS CodePipeline ]
-                                 │
-                     [ AWS CodeBuild (buildspec.yml) ]
-                                 │
-        ┌────────────────────────┴────────────────────────┐
-        ▼                                                 ▼
-[ Build Backend Image ]                           [ Build Frontend Image ]
-        │                                                 │
-        ▼                                                 ▼
-[ Push to ECR (backend) ]                         [ Push to ECR (frontend) ]
-        │                                                 │
-        └────────────────────────┬────────────────────────┘
-                                 │
-                                 ▼
-            [ Register ECS Fargate Task Definition ]
-        (Injects SSM Parameter Store Secrets & ECR Image SHAs)
-                                 │
-                                 ▼
-              [ Update ECS Fargate Service: shalaconnect ]
-                     (Rolling zero-downtime update)
-                                 │
-                                 ▼
-                    [ Live ECS Fargate Container ]
-           ├── Port 80 (Frontend Nginx) ── proxies /api/* ──┐
-           └── Port 8080 (Spring Boot Backend API) ◄────────┘
-                                 │
-                                 ▼
-                    [ Amazon RDS PostgreSQL 16 ]
+                                [ Internet Users / Headmasters / Admins ]
+                                                   │
+                                                   ▼
+                                        [ Route 53 DNS (Custom Domain) ]
+                                                   │
+                                                   ▼
+                                        [ AWS CloudFront (Global CDN) ]
+                                        (SSL Termination & HTTPS Enforced)
+                                                   │
+                         ┌─────────────────────────┴─────────────────────────┐
+                         │                                                   │
+         (Path: /* - Static SPA Assets)                    (Path: /api/* & /uploads/*)
+                         │                                                   │
+                         ▼                                                   ▼
+           [ Amazon S3 (Frontend Bucket) ]                     [ Application Load Balancer (ALB) ]
+             (Origin Access Control - OAC)                                   │
+                                                                             ▼
+                                                                  [ ECS Fargate Cluster ]
+                                                               ┌─────────────┴─────────────┐
+                                                               │    ShalaConnect Backend   │
+                                                               │      (Spring Boot 21)     │
+                                                               └─────────────┬─────────────┘
+                                                                             │
+                                              ┌──────────────────────────────┴──────────────────────────────┐
+                                              ▼                                                             ▼
+                                [ Amazon RDS PostgreSQL 16 ]                               [ Amazon S3 (Uploads Bucket) ]
+                                 (Multi-AZ, Private Subnets)                                (GR PDFs, Event Photos, Forms)
+```
+
+---
+
+## Automated CI/CD Pipeline (GitHub Actions)
+
+Deployments are automated through [`.github/workflows/deploy.yml`](./.github/workflows/deploy.yml). Every `git push origin main` triggers two parallel jobs:
+
+```
+                            git push origin main
+                                     │
+                 ┌───────────────────┴───────────────────┐
+                 ▼                                       ▼
+    [ Job 1: Deploy Backend ]               [ Job 2: Deploy Frontend ]
+                 │                                       │
+    • Checkout & Set up JDK 21              • Checkout & Set up Node.js 20
+    • Authenticate with Amazon ECR          • Install dependencies (npm ci)
+    • Build Spring Boot Docker image        • Build optimized SPA (vite build)
+    • Tag with SHA & latest                 • Sync build to S3 Frontend bucket
+    • Push image to Amazon ECR              • Invalidate CloudFront CDN cache
+    • Trigger ECS Fargate rolling rollout   
 ```
 
 ---
@@ -139,13 +144,14 @@
 | **Frontend** | React 18, Vite 5, Tailwind CSS | SPA, Lucide Icons, Recharts, React Hook Form, Context API |
 | **Database** | PostgreSQL 16 | Relational store, foreign key integrity, Hibernate `ddl-auto` |
 | **Auth & Security** | JWT (JJWT 0.12.3) + BCrypt | Stateless bearer authentication with role validation |
-| **Reverse Proxy** | Nginx Alpine | Frontend static asset server + `/api/` & `/uploads/` proxy |
-| **Containerization**| Docker, Docker Compose | Multi-stage production container builds |
-| **Active AWS CI/CD**| AWS CodePipeline, CodeBuild | Automatic pipeline triggered on GitHub push to `main` |
-| **AWS Compute** | AWS ECS Fargate | Serverless container execution |
-| **AWS Database** | Amazon RDS PostgreSQL | Managed relational database in private subnets |
-| **AWS Secrets** | AWS SSM Parameter Store | Encrypted storage for DB passwords and JWT keys |
-| **AWS IaC** | CloudFormation & Terraform | Full infrastructure provisioning suites |
+| **CDN & Edge** | AWS CloudFront | Global edge caching, HTTPS redirection, SPA fallback |
+| **Static Hosting** | Amazon S3 | Frontend hosting with Origin Access Control (OAC) |
+| **Persistent Storage**| Amazon S3 | Private bucket for GR documents and event photos |
+| **API Ingress** | AWS Application Load Balancer | Health checks, path-based routing (`/api/*`, `/uploads/*`) |
+| **Compute** | AWS ECS Fargate | Serverless Docker container runtime |
+| **Container Registry**| Amazon ECR | Docker image repository with lifecycle cleanup |
+| **CI/CD Pipeline** | GitHub Actions | Automated build, test, push, and deployment on push to `main` |
+| **IaC** | Terraform >= 1.5.0 | Modular infrastructure provisioning suite |
 
 ---
 
@@ -153,6 +159,9 @@
 
 ```
 ShalaConnect/
+├── .github/
+│   └── workflows/
+│       └── deploy.yml                      # GitHub Actions automated CI/CD pipeline
 ├── backend/                                # Spring Boot 21 REST API
 │   ├── src/main/java/com/shalaconnect/
 │   │   ├── config/                         # SecurityConfig, WebConfig, AppConfig, DataSeeder
@@ -164,7 +173,7 @@ ShalaConnect/
 │   │   ├── repository/                     # Spring Data JPA interfaces & custom JPQL queries
 │   │   ├── security/                       # JwtAuthFilter, JwtUtil
 │   │   ├── service/impl/                   # Business logic implementations
-│   │   └── util/                           # FileStorageService (local & S3 abstractions)
+│   │   └── util/                           # FileStorageService (local & S3 storage adapter)
 │   ├── src/main/resources/
 │   │   └── application.properties          # Spring configuration & environment mappings
 │   ├── Dockerfile                          # Multi-stage Maven build → Temurin JRE 21 Alpine
@@ -183,20 +192,18 @@ ShalaConnect/
 │   │   ├── App.jsx                         # React router, ErrorBoundary, LanguageProvider
 │   │   ├── index.css                       # Tailwind layers & typography (Plus Jakarta + Devanagari)
 │   │   └── main.jsx                        # React root mount
-│   ├── nginx.conf                          # Nginx reverse proxy with client_max_body_size 25m
+│   ├── nginx.conf                          # Nginx reverse proxy (for Docker container deployment)
 │   ├── Dockerfile                          # Node build → Nginx Alpine runtime
 │   └── package.json                        # Frontend dependencies
-├── aws/
-│   └── cloudformation.yml                  # Complete AWS CI/CD + ECS + RDS CloudFormation template
-├── terraform/                              # Modular AWS Terraform IaC suite
+├── terraform/                              # Modular AWS Terraform Suite
 │   ├── main.tf, variables.tf, outputs.tf   # Provider configuration, parameters & outputs
 │   ├── vpc.tf, security_groups.tf          # Multi-AZ VPC & least-privilege security groups
-│   ├── alb.tf, ecs.tf                      # ALB & ECS Fargate cluster configuration
+│   ├── alb.tf, ecs.tf, ecr.tf              # ALB, ECS Fargate & ECR repository
 │   ├── rds.tf, s3.tf, cloudfront.tf        # PostgreSQL RDS, S3 buckets & CloudFront CDN
+│   ├── terraform.tfvars.example            # Example configuration variables
 │   └── README.md                           # Terraform deployment walkthrough
 ├── database/
 │   └── init.sql                            # Initial database setup script
-├── buildspec.yml                           # AWS CodeBuild instructions (used by CodePipeline)
 ├── docker-compose.yml                      # Local full-stack development orchestration
 └── README.md                               # Project documentation
 ```
@@ -361,19 +368,49 @@ docker compose up -d --build
 
 ---
 
-## AWS Infrastructure as Code
+## AWS Production Deployment with Terraform
 
-### Option 1: Active AWS CodePipeline Stack (CloudFormation)
-Located in [`aws/cloudformation.yml`](./aws/cloudformation.yml):
-- Provisions VPC, Subnets, Security Groups, RDS PostgreSQL, ECR repositories, CodeBuild project, and CodePipeline.
-- **Trigger**: Every push to GitHub `main` automatically runs CodeBuild and rolls out updates to ECS Fargate.
+The infrastructure is 100% codified in [`terraform/`](./terraform/).
 
-### Option 2: Production Modular Suite (Terraform)
-Located in [`terraform/`](./terraform/):
-- Fully decoupled production infrastructure matching modern enterprise standards:
-  - **CloudFront CDN**: Global HTTPS edge caching for static assets with SPA fallback.
-  - **S3 Buckets**: Static frontend hosting with Origin Access Control (OAC) + private encrypted bucket for user uploads.
-  - **Application Load Balancer (ALB)**: Public ingress routing `/api/*` and `/uploads/*` to ECS.
-  - **ECS Fargate Cluster**: Multi-container auto-scaling service in private subnets with CloudWatch log insights.
-  - **Amazon RDS PostgreSQL 16**: Graviton ARM instance with automated daily backups in private subnets.
-- See [`terraform/README.md`](./terraform/README.md) for step-by-step Terraform deployment commands.
+### Step 1: Provision Infrastructure with Terraform
+```bash
+cd terraform
+
+# Copy example variables
+cp terraform.tfvars.example terraform.tfvars
+
+# Edit terraform.tfvars with your secrets:
+# - db_password
+# - jwt_secret
+# - admin_password
+
+terraform init
+terraform plan
+terraform apply
+```
+
+Upon completion, Terraform outputs:
+- `cloudfront_url`: Your public application URL.
+- `cloudfront_distribution_id`: CloudFront ID for cache invalidation.
+- `frontend_s3_bucket`: S3 bucket name for React SPA build.
+- `ecr_repository_url`: ECR repository for Spring Boot Docker images.
+- `ecs_cluster_name`: ECS cluster name (`shalaconnect-prod-cluster`).
+- `ecs_service_name`: ECS service name (`shalaconnect-prod-service`).
+
+### Step 2: Configure GitHub Repository Secrets
+To enable automated CI/CD on every `git push`, add these 5 secrets in **GitHub Repo Settings $\to$ Secrets and variables $\to$ Actions**:
+
+| Secret Name | Source / Value |
+| :--- | :--- |
+| `AWS_ACCESS_KEY_ID` | Your AWS IAM deployment user Access Key |
+| `AWS_SECRET_ACCESS_KEY`| Your AWS IAM deployment user Secret Key |
+| `FRONTEND_S3_BUCKET` | Terraform output: `frontend_s3_bucket` |
+| `CLOUDFRONT_DISTRIBUTION_ID` | Terraform output: `cloudfront_distribution_id` |
+| `ECR_REPOSITORY` | `shalaconnect-backend` |
+
+### Step 3: Automated Deployments
+From now on, every time you push code to `main`:
+```bash
+git push origin main
+```
+GitHub Actions will automatically build the backend Docker image, push it to ECR, deploy to ECS Fargate, build the frontend SPA, sync it to S3, and invalidate CloudFront edge caches. Zero manual steps!
