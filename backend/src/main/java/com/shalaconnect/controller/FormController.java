@@ -49,11 +49,15 @@ public class FormController {
 
     @PostMapping("/{id}/respond")
     @PreAuthorize("hasRole('HEADMASTER')")
+    @org.springframework.transaction.annotation.Transactional
     public ResponseEntity<ApiResponse<Map<String, Object>>> respondToForm(
             @PathVariable Long id,
             @RequestBody Map<String, String> body,
             @AuthenticationPrincipal UserDetails userDetails) {
         String answersJson = body.get("answersJson");
+        if (answersJson == null || answersJson.isBlank()) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("answersJson is required"));
+        }
         Map<String, Object> result = formService.submitFormResponse(id, answersJson, userDetails.getUsername());
         return ResponseEntity.ok(ApiResponse.success("Response submitted", result));
     }

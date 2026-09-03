@@ -95,6 +95,7 @@ public class EventController {
     /** Headmaster submits or updates their school's implementation for an event */
     @PostMapping("/{id}/implement")
     @PreAuthorize("hasRole('HEADMASTER')")
+    @org.springframework.transaction.annotation.Transactional
     public ResponseEntity<ApiResponse<EventImplementationResponse>> submitImplementation(
             @PathVariable Long id,
             @RequestBody Map<String, String> body,
@@ -112,7 +113,10 @@ public class EventController {
 
         impl.setDescription(body.get("description"));
         impl.setSubmittedBy(user);
-        impl = implRepository.save(impl);
+        implRepository.save(impl);
+        // Re-fetch with JOIN FETCH to avoid lazy issues in response
+        impl = implRepository.findByEventIdAndSchoolId(id, user.getSchool().getId())
+            .orElseThrow(() -> new ResourceNotFoundException("Implementation not found"));
         return ResponseEntity.ok(ApiResponse.success("Implementation saved",
             EventImplementationResponse.from(impl)));
     }
@@ -120,6 +124,7 @@ public class EventController {
     /** Headmaster uploads a photo for their implementation */
     @PostMapping("/{id}/implement/photo")
     @PreAuthorize("hasRole('HEADMASTER')")
+    @org.springframework.transaction.annotation.Transactional
     public ResponseEntity<ApiResponse<EventImplementationResponse>> uploadImplPhoto(
             @PathVariable Long id,
             @RequestParam("file") MultipartFile file,
@@ -138,7 +143,10 @@ public class EventController {
 
         String path = fileStorageService.storeFile(file, "events/implementations");
         impl.getPhotoPaths().add(path);
-        impl = implRepository.save(impl);
+        implRepository.save(impl);
+        // Re-fetch with JOIN FETCH to avoid lazy issues in response
+        impl = implRepository.findByEventIdAndSchoolId(id, user.getSchool().getId())
+            .orElseThrow(() -> new ResourceNotFoundException("Implementation not found"));
         return ResponseEntity.ok(ApiResponse.success("Photo uploaded",
             EventImplementationResponse.from(impl)));
     }

@@ -49,14 +49,22 @@ public class SecurityConfig {
                 // Public endpoints
                 .requestMatchers("/api/auth/login").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/schools").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/schools/{id}").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/attendance/school/{id}").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/schools/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/attendance/school/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/events").permitAll()
                 .requestMatchers("/api/health").permitAll()
                 .requestMatchers("/uploads/**").permitAll()
+                // Headmaster-specific POST endpoints — must come BEFORE broad admin POST rules
+                .requestMatchers(HttpMethod.POST, "/api/attendance").hasRole("HEADMASTER")
+                .requestMatchers(HttpMethod.POST, "/api/forms/*/respond").hasRole("HEADMASTER")
+                .requestMatchers(HttpMethod.POST, "/api/meetings/*/acknowledge").hasRole("HEADMASTER")
+                .requestMatchers(HttpMethod.POST, "/api/events/*/implement").hasRole("HEADMASTER")
+                .requestMatchers(HttpMethod.POST, "/api/events/*/implement/photo").hasRole("HEADMASTER")
+                .requestMatchers(HttpMethod.POST, "/api/gr/*/seen").authenticated()
                 // Admin-only
                 .requestMatchers("/api/auth/register-headmaster").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/schools").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/schools/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.PUT, "/api/schools/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/schools/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/gr").hasRole("ADMIN")
@@ -68,17 +76,12 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.PUT, "/api/events/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/events/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/forms").hasRole("ADMIN")
-                .requestMatchers("/api/forms/*/export").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.GET, "/api/forms/*/export").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/forms/**").hasRole("ADMIN")
                 .requestMatchers("/api/users/**").hasRole("ADMIN")
-                // Headmaster
-                .requestMatchers(HttpMethod.POST, "/api/attendance").hasRole("HEADMASTER")
+                // PUT for attendance
                 .requestMatchers(HttpMethod.PUT, "/api/attendance/**").hasAnyRole("ADMIN", "HEADMASTER")
-                .requestMatchers("/api/forms/*/respond").hasRole("HEADMASTER")
-                .requestMatchers("/api/meetings/*/acknowledge").hasRole("HEADMASTER")
-                .requestMatchers("/api/events/*/implement").hasRole("HEADMASTER")
-                .requestMatchers("/api/events/*/implement/photo").hasRole("HEADMASTER")
-                .requestMatchers("/api/gr/*/seen").authenticated()
-                // All authenticated
+                // All other requests require authentication
                 .anyRequest().authenticated()
             )
             .authenticationProvider(authenticationProvider())

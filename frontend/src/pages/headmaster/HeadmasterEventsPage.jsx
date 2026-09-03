@@ -6,7 +6,7 @@ import { ListSkeleton } from '../../components/ui/Skeleton'
 import Modal from '../../components/ui/Modal'
 import {
   BookOpen, Calendar, MapPin, CheckCircle2, Clock,
-  Upload, Image, ChevronDown, ChevronUp, AlertCircle
+  Upload, AlertCircle, ChevronDown, ChevronUp
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
@@ -20,26 +20,26 @@ const TYPE_COLORS = {
 export default function HeadmasterEventsPage() {
   const { data: events, loading: eventsLoading } = useApi(() => eventApi.getAll())
 
-  // We fetch each event's my-implementation lazily when the user expands/opens it
-  // to avoid N+1 on mount. State: { [eventId]: impl | null }
-  const [implCache,   setImplCache]   = useState({})
+  const [implCache,   setImplCache]   = useState({})   // { [eventId]: impl | null }
   const [loadingImpl, setLoadingImpl] = useState({})
   const [expanded,    setExpanded]    = useState({})
-  const [showModal,   setShowModal]   = useState(null) // eventId
+  const [modalEvent,  setModalEvent]  = useState(null) // full event object
   const [description, setDescription] = useState('')
   const [saving,      setSaving]      = useState(false)
-  const [uploading,   setUploading]   = useState(null) // eventId
+  const [uploading,   setUploading]   = useState(null)
 
-  const implCacheRef = useRef({})
-  const loadingImplRef = useRef({})
+  // Ref so fetchImpl never goes stale
+  const implCacheRef    = useRef({})
+  const loadingImplRef  = useRef({})
 
   const fetchImpl = useCallback(async (eventId) => {
-    if (implCacheRef.current[eventId] !== undefined || loadingImplRef.current[eventId]) return
+    if (implCacheRef.current[eventId] !== undefined) return implCacheRef.current[eventId]
+    if (loadingImplRef.current[eventId]) return null
     loadingImplRef.current[eventId] = true
     setLoadingImpl(p => ({ ...p, [eventId]: true }))
     try {
       const res = await eventApi.getMyImplementation(eventId)
-      const impl = res.data.data || null
+      const impl = res.data.data ?? null
       implCacheRef.current[eventId] = impl
       setImplCache(p => ({ ...p, [eventId]: impl }))
       return impl
@@ -53,36 +53,32 @@ export default function HeadmasterEventsPage() {
     }
   }, [])
 
+  const updateCache = (eventId, impl) => {
+    implCacheRef.current[eventId] = impl
+    setImplCache(p => ({ ...p, [eventId]: impl }))
+  }
+
   const toggleExpand = (eventId) => {
     fetchImpl(eventId)
     setExpanded(p => ({ ...p, [eventId]: !p[eventId] }))
   }
 
   const openModal = async (event) => {
-    let impl = implCache[event.id]
-    if (impl === undefined) {
-      impl = await fetchImpl(event.id)
-    }
+    const impl = implCacheRef.current[event.id] !== undefined
+      ? implCacheRef.current[event.id]
+      : await fetchImpl(event.id)
     setDescription(impl?.description || '')
-    setShowModal(event.id)
-  }
-
-  // When modal opens, pre-fill description from cache if available
-  const getModalDescription = () => {
-    if (showModal && implCache[showModal]?.description) return implCache[showModal].description
-    return description
+    setModalEvent(event)
   }
 
   const handleSave = async () => {
-    if (!description.trim()) { toast.error('Please write how you implemented this event'); return }
+    if (!description.trim()) { toast.error('Please describe how you implemented this event'); return }
     setSaving(true)
     try {
-      const res = await eventApi.submitImplementation(showModal, description.trim())
-      const impl = res.data.data
-      implCacheRef.current[showModal] = impl
-      setImplCache(p => ({ ...p, [showModal]: impl }))
+      const res = await eventApi.submitImplementation(modalEvent.id, description.trim())
+      updateCache(modalEvent.id, res.data.data)
       toast.success('Implementation saved!')
-      setShowModal(null)
+      setModalEvent(null)
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to save')
     } finally { setSaving(false) }
@@ -92,9 +88,7 @@ export default function HeadmasterEventsPage() {
     setUploading(eventId)
     try {
       const res = await eventApi.uploadImplPhoto(eventId, file)
-      const impl = res.data.data
-      implCacheRef.current[eventId] = impl
-      setImplCache(p => ({ ...p, [eventId]: impl }))
+      updateCache(eventId, res.data.data)
       toast.success('Photo uploaded!')
     } catch (err) {
       toast.error(err.response?.data?.message || 'Upload failed')
@@ -103,7 +97,7 @@ export default function HeadmasterEventsPage() {
 
   if (eventsLoading) return <ListSkeleton items={4} />
 
-  const sorted = (events || []).sort((a, b) => new Date(b.eventDate) - new Date(a.eventDate))
+  const sorted = [...(events || [])].sort((a, b) => new Date(b.eventDate) - new Date(a.eventDate))
 
   return (
     <div className="page-transition">
@@ -154,7 +148,7 @@ export default function HeadmasterEventsPage() {
                       <div className="flex flex-wrap gap-4 text-xs text-gray-400">
                         <span className="flex items-center gap-1">
                           <Calendar className="w-3 h-3" />
-                          {event.eventDate && format(new Date(event.eventDate), 'dd MMMM yyyy')}
+                          {event.eventDate && format(new Date(event.eventDate + 'T00:00:00'), 'dd MMMM yyyy')}
                         </span>
                         {event.venue && (
                           <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{event.venue}</span>
@@ -175,12 +169,9 @@ export default function HeadmasterEventsPage() {
                   </div>
                 </div>
 
-                {/* Expanded implementation details */}
                 {isExpanded && (
                   <div className="mt-4 pt-4 border-t border-gray-100 space-y-3">
-                    {loadingImpl[event.id] && (
-                      <p className="text-sm text-gray-400">Loading…</p>
-                    )}
+                    {loadingImpl[event.id] && <p className="text-sm text-gray-400">Loading…</p>}
                     {!loadingImpl[event.id] && !impl && (
                       <p className="text-sm text-gray-400">No implementation submitted yet.</p>
                     )}
@@ -201,16 +192,17 @@ export default function HeadmasterEventsPage() {
                               {impl.photoPaths.map((path, i) => (
                                 <a key={i} href={`/uploads/${path}`} target="_blank" rel="noreferrer">
                                   <img src={`/uploads/${path}`} alt={`impl photo ${i + 1}`}
-                                    className="w-20 h-20 rounded-lg object-cover border border-gray-200 hover:opacity-80 transition-opacity" />
+                                    className="w-20 h-20 rounded-lg object-cover border border-gray-200 hover:opacity-80 transition-opacity"
+                                    onError={e => { e.target.style.display = 'none' }} />
                                 </a>
                               ))}
                             </div>
                           </div>
                         )}
-                        <label className={clsx('btn-secondary btn-sm cursor-pointer inline-flex', uploading === event.id && 'opacity-50')}>
+                        <label className={clsx('btn-secondary btn-sm cursor-pointer inline-flex items-center gap-1.5', uploading === event.id && 'opacity-50 pointer-events-none')}>
                           <Upload className="w-3 h-3" />
-                          {uploading === event.id ? 'Uploading…' : 'Add More Photos'}
-                          <input type="file" accept="image/*" className="hidden" disabled={uploading === event.id}
+                          {uploading === event.id ? 'Uploading…' : 'Add Photo'}
+                          <input type="file" accept="image/*" className="hidden"
                             onChange={e => e.target.files[0] && handlePhoto(event.id, e.target.files[0])} />
                         </label>
                       </>
@@ -223,15 +215,15 @@ export default function HeadmasterEventsPage() {
         </div>
       )}
 
-      {/* Submit/Edit Modal */}
-      {showModal && (
+      {/* Submit / Edit Modal */}
+      {modalEvent && (
         <Modal
-          open={!!showModal}
-          onClose={() => setShowModal(null)}
-          title={implCache[showModal] ? `Edit Implementation — ${(events || []).find(e => e.id === showModal)?.title}` : `Submit Implementation — ${(events || []).find(e => e.id === showModal)?.title}`}
+          open
+          onClose={() => setModalEvent(null)}
+          title={`${implCache[modalEvent.id] ? 'Edit' : 'Submit'} Report — ${modalEvent.title}`}
           footer={
             <>
-              <button onClick={() => setShowModal(null)} className="btn-secondary" disabled={saving}>Cancel</button>
+              <button onClick={() => setModalEvent(null)} className="btn-secondary" disabled={saving}>Cancel</button>
               <button onClick={handleSave} className="btn-primary" disabled={saving}>
                 {saving ? 'Saving…' : 'Save Report'}
               </button>
@@ -244,9 +236,10 @@ export default function HeadmasterEventsPage() {
               <textarea
                 className="input"
                 rows={5}
-                placeholder="Describe what activities were conducted, how many students participated, outcomes, challenges faced…"
+                placeholder="Describe what activities were conducted, how many students participated, outcomes…"
                 value={description}
                 onChange={e => setDescription(e.target.value)}
+                autoFocus
               />
               {!description.trim() && (
                 <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
@@ -254,23 +247,31 @@ export default function HeadmasterEventsPage() {
                 </p>
               )}
             </div>
-            <div className="form-group">
-              <label className="label">Upload Photos</label>
-              <label className={clsx('btn-secondary btn-sm cursor-pointer inline-flex', uploading === showModal && 'opacity-50')}>
-                <Image className="w-3 h-3" />
-                {uploading === showModal ? 'Uploading…' : 'Choose Photo'}
-                <input type="file" accept="image/*" className="hidden" disabled={uploading === showModal}
-                  onChange={e => e.target.files[0] && handlePhoto(showModal, e.target.files[0])} />
-              </label>
-              {implCache[showModal]?.photoPaths?.length > 0 && (
-                <div className="flex gap-2 mt-2 flex-wrap">
-                  {implCache[showModal].photoPaths.map((path, i) => (
-                    <img key={i} src={`/uploads/${path}`} alt={`photo ${i + 1}`}
-                      className="w-16 h-16 rounded-lg object-cover border border-gray-200" />
-                  ))}
-                </div>
-              )}
-            </div>
+
+            {/* Photo upload — only available after first save */}
+            {implCache[modalEvent.id] && (
+              <div className="form-group">
+                <label className="label">Upload Photos</label>
+                <label className={clsx('btn-secondary btn-sm cursor-pointer inline-flex items-center gap-1.5', uploading === modalEvent.id && 'opacity-50 pointer-events-none')}>
+                  <Upload className="w-3 h-3" />
+                  {uploading === modalEvent.id ? 'Uploading…' : 'Choose Photo'}
+                  <input type="file" accept="image/*" className="hidden"
+                    onChange={e => e.target.files[0] && handlePhoto(modalEvent.id, e.target.files[0])} />
+                </label>
+                {implCache[modalEvent.id]?.photoPaths?.length > 0 && (
+                  <div className="flex gap-2 mt-2 flex-wrap">
+                    {implCache[modalEvent.id].photoPaths.map((path, i) => (
+                      <img key={i} src={`/uploads/${path}`} alt={`photo ${i + 1}`}
+                        className="w-16 h-16 rounded-lg object-cover border border-gray-200"
+                        onError={e => { e.target.style.display = 'none' }} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            {!implCache[modalEvent.id] && (
+              <p className="text-xs text-gray-400">Save the report first, then you can upload photos.</p>
+            )}
           </div>
         </Modal>
       )}
