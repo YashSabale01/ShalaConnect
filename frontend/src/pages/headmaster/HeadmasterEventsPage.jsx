@@ -96,13 +96,19 @@ export default function HeadmasterEventsPage() {
       toast.error('You must be assigned to a school by the administrator to upload photos.')
       return
     }
+    if (!file) return
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error('Photo size exceeds the 20MB limit')
+      return
+    }
     setUploading(eventId)
     try {
       const res = await eventApi.uploadImplPhoto(eventId, file)
       updateCache(eventId, res.data.data)
       toast.success('Photo uploaded!')
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Upload failed')
+      const msg = err.response?.data?.message || (err.response?.status === 413 ? 'Photo too large (max 20MB)' : 'Upload failed')
+      toast.error(msg)
     } finally { setUploading(null) }
   }
 
@@ -223,7 +229,11 @@ export default function HeadmasterEventsPage() {
                           <Upload className="w-3 h-3" />
                           {uploading === event.id ? 'Uploading…' : 'Add Photo'}
                           <input type="file" accept="image/*" className="hidden"
-                            onChange={e => e.target.files[0] && handlePhoto(event.id, e.target.files[0])} />
+                            onChange={e => {
+                              const file = e.target.files[0]
+                              if (file) handlePhoto(event.id, file)
+                              e.target.value = ''
+                            }} />
                         </label>
                       </>
                     )}
@@ -276,7 +286,11 @@ export default function HeadmasterEventsPage() {
                   <Upload className="w-3 h-3" />
                   {uploading === modalEvent.id ? 'Uploading…' : 'Choose Photo'}
                   <input type="file" accept="image/*" className="hidden"
-                    onChange={e => e.target.files[0] && handlePhoto(modalEvent.id, e.target.files[0])} />
+                    onChange={e => {
+                      const file = e.target.files[0]
+                      if (file) handlePhoto(modalEvent.id, file)
+                      e.target.value = ''
+                    }} />
                 </label>
                 {implCache[modalEvent.id]?.photoPaths?.length > 0 && (
                   <div className="flex gap-2 mt-2 flex-wrap">

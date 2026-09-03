@@ -117,8 +117,6 @@ public class EventController {
         impl.setDescription(body.get("description"));
         impl.setSubmittedBy(user);
         impl = implRepository.saveAndFlush(impl);
-        // Re-fetch with all associations and photoPaths loaded
-        impl = implRepository.findByIdWithPhotos(impl.getId()).orElse(impl);
         return ResponseEntity.ok(ApiResponse.success("Implementation saved",
             EventImplementationResponse.from(impl)));
     }
@@ -150,8 +148,6 @@ public class EventController {
 
             impl.getPhotoPaths().add(path);
             impl = implRepository.saveAndFlush(impl);
-            // Re-fetch with all associations and photoPaths loaded
-            impl = implRepository.findByIdWithPhotos(impl.getId()).orElse(impl);
             return ResponseEntity.ok(ApiResponse.success("Photo uploaded",
                 EventImplementationResponse.from(impl)));
         } catch (Exception e) {

@@ -59,7 +59,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/forms/*/respond").hasRole("HEADMASTER")
                 .requestMatchers(HttpMethod.POST, "/api/meetings/*/acknowledge").hasRole("HEADMASTER")
                 .requestMatchers(HttpMethod.POST, "/api/events/*/implement").hasRole("HEADMASTER")
-                .requestMatchers(HttpMethod.POST, "/api/events/*/implement/photo").hasRole("HEADMASTER")
+                .requestMatchers(HttpMethod.POST, "/api/events/*/implement/**").hasRole("HEADMASTER")
                 .requestMatchers(HttpMethod.POST, "/api/gr/*/seen").authenticated()
                 // Admin-only
                 .requestMatchers("/api/auth/register-headmaster").hasRole("ADMIN")

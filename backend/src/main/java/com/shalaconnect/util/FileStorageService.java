@@ -57,9 +57,12 @@ public class FileStorageService {
     public void validateImageFile(MultipartFile file) {
         if (file == null || file.isEmpty()) throw new BadRequestException("File is empty");
         String ct = file.getContentType();
-        // Accept any image/* content type, or octet-stream (some browsers send this)
-        if (ct != null && !ct.startsWith("image/") && !ct.equals("application/octet-stream"))
-            throw new BadRequestException("Only image files are allowed");
+        String name = file.getOriginalFilename() != null ? file.getOriginalFilename().toLowerCase() : "";
+        boolean isImageExt = name.endsWith(".jpg") || name.endsWith(".jpeg") || name.endsWith(".png")
+                || name.endsWith(".webp") || name.endsWith(".gif") || name.endsWith(".bmp") || name.endsWith(".jfif");
+        boolean isImageMime = ct != null && (ct.startsWith("image/") || ct.equals("application/octet-stream"));
+        if (!isImageExt && !isImageMime)
+            throw new BadRequestException("Only image files are allowed (JPG, PNG, WebP, GIF)");
     }
 
     public void validateDocumentFile(MultipartFile file) {
