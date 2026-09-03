@@ -19,14 +19,17 @@ public class EventImplementationResponse {
     private LocalDateTime updatedAt;
 
     public static EventImplementationResponse from(EventImplementation i) {
+        List<String> photos;
+        try { photos = i.getPhotoPaths() != null ? new java.util.ArrayList<>(i.getPhotoPaths()) : new java.util.ArrayList<>(); }
+        catch (Exception e) { photos = new java.util.ArrayList<>(); }
         return EventImplementationResponse.builder()
             .id(i.getId())
-            .eventId(i.getEvent().getId())
+            .eventId(i.getEvent() != null ? i.getEvent().getId() : null)
             .schoolId(i.getSchool().getId())
             .schoolName(i.getSchool().getName())
             .submittedByName(i.getSubmittedBy() != null ? i.getSubmittedBy().getName() : null)
             .description(i.getDescription())
-            .photoPaths(i.getPhotoPaths())
+            .photoPaths(photos)
             .createdAt(i.getCreatedAt())
             .updatedAt(i.getUpdatedAt())
             .build();

@@ -12,11 +12,17 @@ import java.util.Optional;
 @Repository
 public interface EventImplementationRepository extends JpaRepository<EventImplementation, Long> {
 
-    @Query("SELECT DISTINCT i FROM EventImplementation i LEFT JOIN FETCH i.event LEFT JOIN FETCH i.school LEFT JOIN FETCH i.submittedBy LEFT JOIN FETCH i.photoPaths WHERE i.event.id = :eventId")
+    // For list view — fetch associations but NOT the ElementCollection (avoids MultipleBagFetchException)
+    @Query("SELECT i FROM EventImplementation i LEFT JOIN FETCH i.school LEFT JOIN FETCH i.submittedBy WHERE i.event.id = :eventId")
     List<EventImplementation> findByEventId(@Param("eventId") Long eventId);
 
-    @Query("SELECT DISTINCT i FROM EventImplementation i LEFT JOIN FETCH i.event LEFT JOIN FETCH i.school LEFT JOIN FETCH i.submittedBy LEFT JOIN FETCH i.photoPaths WHERE i.event.id = :eventId AND i.school.id = :schoolId")
+    // For single entity — fetch associations only
+    @Query("SELECT i FROM EventImplementation i LEFT JOIN FETCH i.school LEFT JOIN FETCH i.submittedBy WHERE i.event.id = :eventId AND i.school.id = :schoolId")
     Optional<EventImplementation> findByEventIdAndSchoolId(@Param("eventId") Long eventId, @Param("schoolId") Long schoolId);
+
+    // Fetch photoPaths ElementCollection separately (called after findByEventIdAndSchoolId)
+    @Query("SELECT i FROM EventImplementation i LEFT JOIN FETCH i.photoPaths WHERE i.id = :id")
+    Optional<EventImplementation> findByIdWithPhotos(@Param("id") Long id);
 
     List<EventImplementation> findBySubmittedById(Long userId);
 }

@@ -95,7 +95,6 @@ public class EventController {
     /** Headmaster submits or updates their school's implementation for an event */
     @PostMapping("/{id}/implement")
     @PreAuthorize("hasRole('HEADMASTER')")
-    @org.springframework.transaction.annotation.Transactional
     public ResponseEntity<ApiResponse<EventImplementationResponse>> submitImplementation(
             @PathVariable Long id,
             @RequestBody Map<String, String> body,
@@ -104,19 +103,20 @@ public class EventController {
             .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         if (user.getSchool() == null)
             throw new BadRequestException("You are not assigned to a school");
-        Event event = eventRepository.findByIdWithCreator(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Event", id));
 
         EventImplementation impl = implRepository
             .findByEventIdAndSchoolId(id, user.getSchool().getId())
-            .orElse(EventImplementation.builder().event(event).school(user.getSchool()).build());
+            .orElseGet(() -> {
+                Event event = eventRepository.findByIdWithCreator(id)
+                    .orElseThrow(() -> new ResourceNotFoundException("Event", id));
+                return EventImplementation.builder().event(event).school(user.getSchool()).build();
+            });
 
         impl.setDescription(body.get("description"));
         impl.setSubmittedBy(user);
-        implRepository.save(impl);
-        // Re-fetch with JOIN FETCH to avoid lazy issues in response
-        impl = implRepository.findByEventIdAndSchoolId(id, user.getSchool().getId())
-            .orElseThrow(() -> new ResourceNotFoundException("Implementation not found"));
+        impl = implRepository.saveAndFlush(impl);
+        // Re-fetch with photoPaths loaded
+        impl = implRepository.findByIdWithPhotos(impl.getId()).orElse(impl);
         return ResponseEntity.ok(ApiResponse.success("Implementation saved",
             EventImplementationResponse.from(impl)));
     }
@@ -124,31 +124,38 @@ public class EventController {
     /** Headmaster uploads a photo for their implementation */
     @PostMapping("/{id}/implement/photo")
     @PreAuthorize("hasRole('HEADMASTER')")
-    @org.springframework.transaction.annotation.Transactional
     public ResponseEntity<ApiResponse<EventImplementationResponse>> uploadImplPhoto(
             @PathVariable Long id,
             @RequestParam("file") MultipartFile file,
             @AuthenticationPrincipal UserDetails userDetails) {
         fileStorageService.validateImageFile(file);
-        User user = userRepository.findByEmailWithSchool(userDetails.getUsername())
-            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-        if (user.getSchool() == null)
-            throw new BadRequestException("You are not assigned to a school");
-        Event event = eventRepository.findByIdWithCreator(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Event", id));
-
-        EventImplementation impl = implRepository
-            .findByEventIdAndSchoolId(id, user.getSchool().getId())
-            .orElse(EventImplementation.builder().event(event).school(user.getSchool()).submittedBy(user).build());
-
+        // Store file first (outside any transaction)
         String path = fileStorageService.storeFile(file, "events/implementations");
-        impl.getPhotoPaths().add(path);
-        implRepository.save(impl);
-        // Re-fetch with JOIN FETCH to avoid lazy issues in response
-        impl = implRepository.findByEventIdAndSchoolId(id, user.getSchool().getId())
-            .orElseThrow(() -> new ResourceNotFoundException("Implementation not found"));
-        return ResponseEntity.ok(ApiResponse.success("Photo uploaded",
-            EventImplementationResponse.from(impl)));
+        try {
+            User user = userRepository.findByEmailWithSchool(userDetails.getUsername())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+            if (user.getSchool() == null)
+                throw new BadRequestException("You are not assigned to a school");
+
+            EventImplementation impl = implRepository
+                .findByEventIdAndSchoolId(id, user.getSchool().getId())
+                .orElseGet(() -> {
+                    Event event = eventRepository.findByIdWithCreator(id)
+                        .orElseThrow(() -> new ResourceNotFoundException("Event", id));
+                    return EventImplementation.builder().event(event).school(user.getSchool()).submittedBy(user).build();
+                });
+
+            impl.getPhotoPaths().add(path);
+            impl = implRepository.saveAndFlush(impl);
+            // Re-fetch with photoPaths loaded
+            impl = implRepository.findByIdWithPhotos(impl.getId()).orElse(impl);
+            return ResponseEntity.ok(ApiResponse.success("Photo uploaded",
+                EventImplementationResponse.from(impl)));
+        } catch (Exception e) {
+            // Clean up stored file if DB operation fails
+            fileStorageService.deleteFile(path);
+            throw e;
+        }
     }
 
     /** Admin monitors all schools' implementations for an event */
@@ -156,8 +163,10 @@ public class EventController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<List<EventImplementationResponse>>> getImplementations(
             @PathVariable Long id) {
-        List<EventImplementationResponse> list = implRepository.findByEventId(id)
-            .stream().map(EventImplementationResponse::from).toList();
+        List<EventImplementationResponse> list = implRepository.findByEventId(id).stream()
+            .map(impl -> implRepository.findByIdWithPhotos(impl.getId()).orElse(impl))
+            .map(EventImplementationResponse::from)
+            .toList();
         return ResponseEntity.ok(ApiResponse.success(list));
     }
 
@@ -172,6 +181,7 @@ public class EventController {
         if (user.getSchool() == null)
             return ResponseEntity.ok(ApiResponse.success(null));
         return implRepository.findByEventIdAndSchoolId(id, user.getSchool().getId())
+            .map(impl -> implRepository.findByIdWithPhotos(impl.getId()).orElse(impl))
             .map(impl -> ResponseEntity.ok(ApiResponse.success(EventImplementationResponse.from(impl))))
             .orElse(ResponseEntity.ok(ApiResponse.success(null)));
     }
