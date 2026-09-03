@@ -17,4 +17,5 @@ public interface FormResponseRepository extends JpaRepository<FormResponse, Long
     Optional<FormResponse> findByFormIdAndSubmittedById(Long formId, Long userId);
     long countByFormId(Long formId);
     boolean existsByFormIdAndSubmittedById(Long formId, Long userId);
+    boolean existsBySubmittedById(Long userId);
 }
