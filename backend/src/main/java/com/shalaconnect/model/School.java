@@ -45,11 +45,11 @@ public class School {
     @Column(nullable = false)
     private boolean active = true;
 
-    @OneToMany(mappedBy = "school", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "school", fetch = FetchType.LAZY)
     @Builder.Default
     private List<User> staff = new ArrayList<>();
 
-    @OneToMany(mappedBy = "school", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "school", fetch = FetchType.LAZY)
     @Builder.Default
     private List<AttendanceRecord> attendanceRecords = new ArrayList<>();
 
