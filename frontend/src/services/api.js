@@ -76,6 +76,7 @@ export const attendanceApi = {
   getByRange:   (schoolId, s, e)     => api.get(`/attendance/school/${schoolId}/range?start=${s}&end=${e}`),
   getByDate:    (date)               => api.get(`/attendance/date/${date}`),
   getSummary:   ()                   => api.get('/attendance/summary'),
+  exportMonthly:(year, month)        => api.get(`/attendance/export-monthly?year=${year}&month=${month}`, { responseType: 'blob' }),
 }
 
 // ─── GR Documents ─────────────────────────────────────────────────────────────

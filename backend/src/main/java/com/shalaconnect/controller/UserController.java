@@ -4,7 +4,9 @@ import com.shalaconnect.dto.response.ApiResponse;
 import com.shalaconnect.dto.response.AuthResponse;
 import com.shalaconnect.exception.ResourceNotFoundException;
 import com.shalaconnect.model.User;
+import com.shalaconnect.repository.AttendanceRepository;
 import com.shalaconnect.repository.EventImplementationRepository;
+import com.shalaconnect.repository.FormResponseRepository;
 import com.shalaconnect.repository.SchoolRepository;
 import com.shalaconnect.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +29,8 @@ public class UserController {
     private final UserRepository userRepository;
     private final SchoolRepository schoolRepository;
     private final EventImplementationRepository implRepository;
+    private final AttendanceRepository attendanceRepository;
+    private final FormResponseRepository formResponseRepository;
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<AuthResponse.UserDto>>> getAllUsers() {
@@ -79,6 +83,19 @@ public class UserController {
     public ResponseEntity<ApiResponse<Void>> deleteUser(@PathVariable Long id) {
         User user = userRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("User", id));
+
+        boolean hasAttendance = attendanceRepository.existsBySubmittedById(id);
+        boolean hasFormResponses = formResponseRepository.existsBySubmittedById(id);
+
+        // If historical records exist, soft-delete to preserve database integrity
+        if (hasAttendance || hasFormResponses) {
+            user.setSchool(null);
+            user.setActive(false);
+            userRepository.save(user);
+            return ResponseEntity.ok(ApiResponse.success(
+                "User has historical attendance or form records. Account has been deactivated and unlinked from school to preserve audit history.", null));
+        }
+
         // Clear FK references before hard delete
         user.setSchool(null);
         userRepository.save(user);
@@ -88,6 +105,6 @@ public class UserController {
             implRepository.save(impl);
         });
         userRepository.deleteById(id);
-        return ResponseEntity.ok(ApiResponse.success("User deleted", null));
+        return ResponseEntity.ok(ApiResponse.success("User deleted successfully", null));
     }
 }

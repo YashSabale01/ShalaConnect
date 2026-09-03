@@ -39,3 +39,9 @@ architecture.drawio
 # Logs
 *.log
 logs/
+
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.*
+terraform.tfvars

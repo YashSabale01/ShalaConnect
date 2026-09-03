@@ -4,8 +4,10 @@ import com.shalaconnect.dto.request.EventRequest;
 import com.shalaconnect.dto.response.EventResponse;
 import com.shalaconnect.exception.ResourceNotFoundException;
 import com.shalaconnect.model.Event;
+import com.shalaconnect.model.Notification;
 import com.shalaconnect.model.User;
 import com.shalaconnect.repository.EventRepository;
+import com.shalaconnect.repository.NotificationRepository;
 import com.shalaconnect.repository.UserRepository;
 import com.shalaconnect.service.EventService;
 import com.shalaconnect.util.FileStorageService;
@@ -23,6 +25,7 @@ public class EventServiceImpl implements EventService {
 
     private final EventRepository eventRepository;
     private final UserRepository userRepository;
+    private final NotificationRepository notificationRepository;
     private final FileStorageService fileStorageService;
 
     @Override
@@ -55,6 +58,21 @@ public class EventServiceImpl implements EventService {
             .build();
 
         event = eventRepository.save(event);
+
+        // Notify all active headmasters
+        final Long eventId = event.getId();
+        final String eventTitle = event.getTitle();
+        userRepository.findByRoleAndActiveTrue(User.Role.HEADMASTER).forEach(hm -> {
+            notificationRepository.save(Notification.builder()
+                .user(hm)
+                .title("New Event Announced")
+                .message("New event: " + eventTitle + " scheduled on " + request.getEventDate())
+                .type(Notification.NotificationType.EVENT)
+                .referenceId(eventId)
+                .referenceType("EVENT")
+                .build());
+        });
+
         return EventResponse.from(eventRepository.findByIdWithCreator(event.getId())
             .orElse(event));
     }

@@ -104,6 +104,21 @@ public class FormServiceImpl implements FormService {
 
         responseRepository.save(response);
 
+        // Notify cluster admin
+        final Long formRespId = formId;
+        final String schoolName = submitter.getSchool() != null ? submitter.getSchool().getName() : submitter.getName();
+        final String formTitle = form.getTitle();
+        userRepository.findByRoleAndActiveTrue(User.Role.ADMIN).forEach(admin -> {
+            notificationRepository.save(Notification.builder()
+                .user(admin)
+                .title("Form Response Received")
+                .message(schoolName + " submitted response for: " + formTitle)
+                .type(Notification.NotificationType.FORM)
+                .referenceId(formRespId)
+                .referenceType("FORM")
+                .build());
+        });
+
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("success", true);
         result.put("message", "Form response submitted successfully");

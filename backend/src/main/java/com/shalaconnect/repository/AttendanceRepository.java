@@ -30,4 +30,6 @@ public interface AttendanceRepository extends JpaRepository<AttendanceRecord, Lo
 
     @Query("SELECT AVG(a.presentStudents * 100.0 / a.totalStudents) FROM AttendanceRecord a WHERE a.school.id = :schoolId AND a.attendanceDate BETWEEN :start AND :end")
     Double findAverageAttendanceBySchoolAndDateRange(@Param("schoolId") Long schoolId, @Param("start") LocalDate start, @Param("end") LocalDate end);
+
+    boolean existsBySubmittedById(Long userId);
 }

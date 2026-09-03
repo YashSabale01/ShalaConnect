@@ -8,9 +8,11 @@ import com.shalaconnect.exception.BadRequestException;
 import com.shalaconnect.exception.ResourceNotFoundException;
 import com.shalaconnect.model.Event;
 import com.shalaconnect.model.EventImplementation;
+import com.shalaconnect.model.Notification;
 import com.shalaconnect.model.User;
 import com.shalaconnect.repository.EventImplementationRepository;
 import com.shalaconnect.repository.EventRepository;
+import com.shalaconnect.repository.NotificationRepository;
 import com.shalaconnect.repository.UserRepository;
 import com.shalaconnect.service.EventService;
 import com.shalaconnect.util.FileStorageService;
@@ -36,6 +38,7 @@ public class EventController {
     private final EventImplementationRepository implRepository;
     private final EventRepository eventRepository;
     private final UserRepository userRepository;
+    private final NotificationRepository notificationRepository;
     private final FileStorageService fileStorageService;
 
     @GetMapping
@@ -117,6 +120,22 @@ public class EventController {
         impl.setDescription(body.get("description"));
         impl.setSubmittedBy(user);
         impl = implRepository.saveAndFlush(impl);
+
+        // Notify cluster admin
+        final Long implId = impl.getId();
+        final String schoolName = user.getSchool().getName();
+        final String eventTitle = impl.getEvent().getTitle();
+        userRepository.findByRoleAndActiveTrue(User.Role.ADMIN).forEach(admin -> {
+            notificationRepository.save(Notification.builder()
+                .user(admin)
+                .title("Event Implementation Submitted")
+                .message(schoolName + " submitted implementation report for " + eventTitle)
+                .type(Notification.NotificationType.EVENT)
+                .referenceId(implId)
+                .referenceType("EVENT")
+                .build());
+        });
+
         return ResponseEntity.ok(ApiResponse.success("Implementation saved",
             EventImplementationResponse.from(impl)));
     }

@@ -1,0 +1,20 @@
+# Example Terraform Variables for ShalaConnect AWS Deployment
+# Copy this file to terraform.tfvars and populate with actual secrets before running:
+# terraform apply
+
+aws_region   = "ap-south-1" # Mumbai
+environment  = "prod"
+project_name = "shalaconnect"
+
+# Database Configuration
+db_name     = "school_management"
+db_username = "postgres"
+db_password = "ChangeThisSecurePassword123!" # Replace with strong password
+
+# Application Security
+jwt_secret     = "replace_with_a_very_long_secure_random_jwt_secret_key_at_least_32_chars"
+admin_email    = "admin@shalaconnect.in"
+admin_password = "AdminSecurePassword@2026!"
+
+# Container Image (Amazon ECR URI)
+# backend_image = "123456789012.dkr.ecr.ap-south-1.amazonaws.com/shalaconnect-backend:latest"

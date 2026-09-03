@@ -7,6 +7,8 @@ import com.shalaconnect.service.AttendanceService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -67,5 +69,18 @@ public class AttendanceController {
     @GetMapping("/summary")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getSummary() {
         return ResponseEntity.ok(ApiResponse.success(attendanceService.getAttendanceSummary()));
+    }
+
+    @GetMapping("/export-monthly")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<byte[]> exportMonthly(
+            @RequestParam int year,
+            @RequestParam int month) {
+        byte[] excel = attendanceService.exportMonthlyClusterAttendance(year, month);
+        return ResponseEntity.ok()
+            .header(HttpHeaders.CONTENT_DISPOSITION,
+                    "attachment; filename=cluster-attendance-" + year + "-" + month + ".xlsx")
+            .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+            .body(excel);
     }
 }

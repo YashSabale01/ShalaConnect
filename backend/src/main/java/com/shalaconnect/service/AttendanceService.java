@@ -13,4 +13,5 @@ public interface AttendanceService {
     List<AttendanceResponse> getAttendanceBySchoolAndDateRange(Long schoolId, LocalDate start, LocalDate end);
     List<AttendanceResponse> getAllSchoolsAttendanceForDate(LocalDate date);
     Map<String, Object> getAttendanceSummary();
+    byte[] exportMonthlyClusterAttendance(int year, int month);
 }
