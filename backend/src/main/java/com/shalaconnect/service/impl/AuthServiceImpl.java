@@ -34,6 +34,8 @@ public class AuthServiceImpl implements AuthService {
             new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
         );
         User user = (User) auth.getPrincipal();
+        // Re-fetch with school eagerly loaded to avoid LazyInitializationException
+        user = userRepository.findByEmailWithSchool(user.getEmail()).orElse(user);
         String token = jwtUtil.generateToken(user);
         return AuthResponse.builder()
             .token(token)

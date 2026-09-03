@@ -59,8 +59,10 @@ public class UserController {
                 .orElseThrow(() -> new ResourceNotFoundException("School", schoolId));
             user.setSchool(school);
         }
-        user = userRepository.save(user);
-        return ResponseEntity.ok(ApiResponse.success("School assigned", AuthResponse.fromUser(user)));
+        userRepository.save(user);
+        // Re-fetch with school eagerly to avoid LazyInitializationException in fromUser()
+        User saved = userRepository.findByIdWithSchool(id).orElseThrow();
+        return ResponseEntity.ok(ApiResponse.success("School assigned", AuthResponse.fromUser(saved)));
     }
 
     @PatchMapping("/{id}/toggle-active")
