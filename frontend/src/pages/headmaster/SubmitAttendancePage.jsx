@@ -29,7 +29,7 @@ export default function SubmitAttendancePage() {
     }
   })
 
-  const today = format(new Date(), 'yyyy-MM-dd')
+  const today = new Date().toLocaleDateString('en-CA') // yyyy-MM-dd in local timezone
   const alreadySubmittedToday = (records || []).some(r => r.attendanceDate === today)
 
   const totalStudents = parseInt(watch('totalStudents')) || 0
