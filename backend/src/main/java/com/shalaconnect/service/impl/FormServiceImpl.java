@@ -14,6 +14,7 @@ import com.shalaconnect.repository.*;
 import com.shalaconnect.service.FormService;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -168,6 +169,10 @@ public class FormServiceImpl implements FormService {
                 c.setCellStyle(headerStyle);
             }
 
+            // Metadata cell style (vertically centered for multi-row schools)
+            CellStyle metaStyle = workbook.createCellStyle();
+            metaStyle.setVerticalAlignment(VerticalAlignment.CENTER);
+
             // Data rows
             DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
             int currentRowIdx = 1;
@@ -198,12 +203,25 @@ public class FormServiceImpl implements FormService {
                     rowEntries.add(Collections.emptyMap());
                 }
 
+                int startRowIdx = currentRowIdx;
                 int entryNum = 1;
                 for (Map<String, Object> entryMap : rowEntries) {
                     Row row = sheet.createRow(currentRowIdx++);
-                    row.createCell(0).setCellValue(schoolName);
-                    row.createCell(1).setCellValue(submitterName);
-                    row.createCell(2).setCellValue(submittedAt);
+
+                    // Set School metadata only on the first row of this school's entry
+                    Cell c0 = row.createCell(0);
+                    Cell c1 = row.createCell(1);
+                    Cell c2 = row.createCell(2);
+                    c0.setCellStyle(metaStyle);
+                    c1.setCellStyle(metaStyle);
+                    c2.setCellStyle(metaStyle);
+
+                    if (entryNum == 1) {
+                        c0.setCellValue(schoolName);
+                        c1.setCellValue(submitterName);
+                        c2.setCellValue(submittedAt);
+                    }
+
                     row.createCell(3).setCellValue(entryNum++);
 
                     for (int f = 0; f < fields.size(); f++) {
@@ -211,6 +229,14 @@ public class FormServiceImpl implements FormService {
                         Object answer = entryMap.getOrDefault(fieldId, "");
                         row.createCell(4 + f).setCellValue(answer != null ? answer.toString() : "");
                     }
+                }
+
+                // If school submitted multiple rows, merge school metadata vertically across the rows
+                if (rowEntries.size() > 1) {
+                    int endRowIdx = currentRowIdx - 1;
+                    sheet.addMergedRegion(new CellRangeAddress(startRowIdx, endRowIdx, 0, 0));
+                    sheet.addMergedRegion(new CellRangeAddress(startRowIdx, endRowIdx, 1, 1));
+                    sheet.addMergedRegion(new CellRangeAddress(startRowIdx, endRowIdx, 2, 2));
                 }
             }
 
