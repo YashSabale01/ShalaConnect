@@ -1,6 +1,7 @@
 package com.shalaconnect.service.impl;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.shalaconnect.dto.request.FormRequest;
 import com.shalaconnect.exception.BadRequestException;
@@ -157,34 +158,63 @@ public class FormServiceImpl implements FormService {
             Cell cell2 = headerRow.createCell(2);
             cell2.setCellValue("Submitted At");
             cell2.setCellStyle(headerStyle);
+            Cell cell3 = headerRow.createCell(3);
+            cell3.setCellValue("Row #");
+            cell3.setCellStyle(headerStyle);
 
             for (int i = 0; i < fields.size(); i++) {
-                Cell c = headerRow.createCell(3 + i);
+                Cell c = headerRow.createCell(4 + i);
                 c.setCellValue((String) fields.get(i).getOrDefault("label", "Field " + i));
                 c.setCellStyle(headerStyle);
             }
 
             // Data rows
             DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-            for (int r = 0; r < responses.size(); r++) {
-                FormResponse resp = responses.get(r);
-                Row row = sheet.createRow(r + 1);
-                row.createCell(0).setCellValue(
-                    resp.getSchool() != null ? resp.getSchool().getName() : "");
-                row.createCell(1).setCellValue(resp.getSubmittedBy().getName());
-                row.createCell(2).setCellValue(
-                    resp.getSubmittedAt() != null ? resp.getSubmittedAt().format(dtf) : "");
+            int currentRowIdx = 1;
+            for (FormResponse resp : responses) {
+                String schoolName = resp.getSchool() != null ? resp.getSchool().getName() : "";
+                String submitterName = resp.getSubmittedBy() != null ? resp.getSubmittedBy().getName() : "";
+                String submittedAt = resp.getSubmittedAt() != null ? resp.getSubmittedAt().format(dtf) : "";
 
-                Map<String, Object> answers = objectMapper.readValue(
-                    resp.getAnswersJson(), new TypeReference<>() {});
-                for (int f = 0; f < fields.size(); f++) {
-                    String fieldId = (String) fields.get(f).getOrDefault("id", "");
-                    Object answer = answers.getOrDefault(fieldId, "");
-                    row.createCell(3 + f).setCellValue(answer != null ? answer.toString() : "");
+                List<Map<String, Object>> rowEntries = new ArrayList<>();
+                try {
+                    JsonNode rootNode = objectMapper.readTree(resp.getAnswersJson());
+                    if (rootNode.isArray()) {
+                        for (JsonNode item : rootNode) {
+                            rowEntries.add(objectMapper.convertValue(item, new TypeReference<Map<String, Object>>() {}));
+                        }
+                    } else if (rootNode.has("rows") && rootNode.get("rows").isArray()) {
+                        for (JsonNode item : rootNode.get("rows")) {
+                            rowEntries.add(objectMapper.convertValue(item, new TypeReference<Map<String, Object>>() {}));
+                        }
+                    } else {
+                        rowEntries.add(objectMapper.convertValue(rootNode, new TypeReference<Map<String, Object>>() {}));
+                    }
+                } catch (Exception e) {
+                    rowEntries.add(Collections.emptyMap());
+                }
+
+                if (rowEntries.isEmpty()) {
+                    rowEntries.add(Collections.emptyMap());
+                }
+
+                int entryNum = 1;
+                for (Map<String, Object> entryMap : rowEntries) {
+                    Row row = sheet.createRow(currentRowIdx++);
+                    row.createCell(0).setCellValue(schoolName);
+                    row.createCell(1).setCellValue(submitterName);
+                    row.createCell(2).setCellValue(submittedAt);
+                    row.createCell(3).setCellValue(entryNum++);
+
+                    for (int f = 0; f < fields.size(); f++) {
+                        String fieldId = (String) fields.get(f).getOrDefault("id", "");
+                        Object answer = entryMap.getOrDefault(fieldId, "");
+                        row.createCell(4 + f).setCellValue(answer != null ? answer.toString() : "");
+                    }
                 }
             }
 
-            for (int i = 0; i < fields.size() + 3; i++) sheet.autoSizeColumn(i);
+            for (int i = 0; i < fields.size() + 4; i++) sheet.autoSizeColumn(i);
 
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
             workbook.write(bos);
