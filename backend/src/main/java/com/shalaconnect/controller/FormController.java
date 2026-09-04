@@ -89,6 +89,12 @@ public class FormController {
             .body(excelData);
     }
 
+    @GetMapping("/{id}/responses")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getFormResponses(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.success(formService.getFormResponses(id)));
+    }
+
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> deleteForm(@PathVariable Long id) {

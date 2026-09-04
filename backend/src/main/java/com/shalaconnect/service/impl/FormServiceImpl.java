@@ -251,6 +251,26 @@ public class FormServiceImpl implements FormService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getFormResponses(Long formId) {
+        List<FormResponse> responses = responseRepository.findByFormId(formId);
+        List<Map<String, Object>> list = new ArrayList<>();
+        for (FormResponse r : responses) {
+            Map<String, Object> map = new LinkedHashMap<>();
+            map.put("id", r.getId());
+            map.put("schoolId", r.getSchool() != null ? r.getSchool().getId() : null);
+            map.put("schoolName", r.getSchool() != null ? r.getSchool().getName() : "Unknown School");
+            map.put("udiseCode", r.getSchool() != null ? r.getSchool().getUdiseCode() : "");
+            map.put("village", r.getSchool() != null ? r.getSchool().getVillage() : "");
+            map.put("submittedByName", r.getSubmittedBy() != null ? r.getSubmittedBy().getName() : null);
+            map.put("submittedAt", r.getSubmittedAt());
+            map.put("answersJson", r.getAnswersJson());
+            list.add(map);
+        }
+        return list;
+    }
+
+    @Override
     @Transactional
     public void deleteForm(Long id) {
         DynamicForm form = findById(id);
@@ -277,6 +297,17 @@ public class FormServiceImpl implements FormService {
             boolean hasResponded = responseRepository
                 .existsByFormIdAndSubmittedById(form.getId(), currentUser.getId());
             map.put("hasResponded", hasResponded);
+            if (hasResponded) {
+                responseRepository.findByFormIdAndSubmittedById(form.getId(), currentUser.getId())
+                    .ifPresent(resp -> {
+                        map.put("myAnswersJson", resp.getAnswersJson());
+                        map.put("mySubmittedAt", resp.getSubmittedAt());
+                    });
+            }
+            if (currentUser.getSchool() != null) {
+                map.put("schoolName", currentUser.getSchool().getName());
+                map.put("udiseCode", currentUser.getSchool().getUdiseCode());
+            }
         } else {
             map.put("hasResponded", false);
         }

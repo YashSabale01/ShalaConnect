@@ -13,5 +13,6 @@ public interface FormService {
     Map<String, Object> createForm(FormRequest request, String creatorEmail);
     Map<String, Object> submitFormResponse(Long formId, String answersJson, String submitterEmail);
     byte[] exportFormResponsesAsExcel(Long formId);
+    List<Map<String, Object>> getFormResponses(Long formId);
     void deleteForm(Long id);
 }

@@ -6,7 +6,7 @@ import EmptyState from '../../components/ui/EmptyState'
 import { ListSkeleton } from '../../components/ui/Skeleton'
 import {
   ClipboardList, CheckCircle2, Clock, AlertCircle, Send,
-  Plus, Trash2, Copy, Eye, Table, LayoutList
+  Plus, Trash2, Copy, Eye, Table, LayoutList, School
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
@@ -376,6 +376,22 @@ export default function HeadmasterFormsPage() {
           }
         >
           <div className="space-y-5">
+            {/* Combined School Info Banner - Shown ONCE at the top */}
+            <div className="flex flex-wrap items-center justify-between gap-2 p-3 bg-gradient-to-r from-primary-50 to-blue-50/50 border border-primary-100 rounded-xl text-xs text-primary-950">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-lg bg-primary-600 text-white flex items-center justify-center font-bold text-[10px] flex-shrink-0">
+                  <School className="w-3.5 h-3.5" />
+                </div>
+                <span>
+                  <strong>School:</strong> {activeForm.schoolName || 'Your School'}
+                  {activeForm.udiseCode && <span className="text-primary-700 ml-1 font-mono">(UDISE: {activeForm.udiseCode})</span>}
+                </span>
+              </div>
+              <span className="badge badge-green text-[10px]">
+                School Tenancy Verified
+              </span>
+            </div>
+
             {/* Form Description */}
             {activeForm.description && (
               <div className="p-3.5 bg-blue-50 border border-blue-100 rounded-xl text-sm text-blue-800 leading-relaxed">
@@ -578,9 +594,23 @@ export default function HeadmasterFormsPage() {
           }
         >
           <div className="space-y-4">
-            <div className="flex items-center justify-between text-xs text-gray-500 pb-3 border-b border-gray-100">
+            {/* Combined School Info Banner */}
+            <div className="flex flex-wrap items-center justify-between gap-2 p-3 bg-gradient-to-r from-primary-50 to-blue-50/50 border border-primary-100 rounded-xl text-xs text-primary-950">
+              <div className="flex items-center gap-2">
+                <School className="w-4 h-4 text-primary-600 flex-shrink-0" />
+                <span>
+                  <strong>School:</strong> {viewingForm.schoolName || 'Your School'}
+                  {viewingForm.udiseCode && <span className="text-primary-700 ml-1 font-mono">(UDISE: {viewingForm.udiseCode})</span>}
+                </span>
+              </div>
+              <span className="badge badge-green text-[10px]">
+                {viewingData ? `${viewingData.length} Rows Submitted` : 'Submitted'}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between text-xs text-gray-500 pb-2 border-b border-gray-100">
               <span>Form ID: #{viewingForm.id}</span>
-              <span className="badge badge-green">Submitted</span>
+              <span>{viewingForm.mySubmittedAt && `Submitted: ${format(new Date(viewingForm.mySubmittedAt), 'dd/MM/yyyy HH:mm')}`}</span>
             </div>
 
             {viewingData && viewingData.length > 0 ? (

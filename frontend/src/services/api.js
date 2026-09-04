@@ -130,9 +130,10 @@ export const formApi = {
   getAll:   ()          => api.get('/forms'),
   getById:  (id)        => api.get(`/forms/${id}`),
   create:   (data)      => api.post('/forms', data),
-  respond:  (id, data)  => api.post(`/forms/${id}/respond`, data),
-  export:   (id)        => api.get(`/forms/${id}/export`, { responseType: 'blob' }),
-  delete:   (id)        => api.delete(`/forms/${id}`),
+  respond:       (id, data)  => api.post(`/forms/${id}/respond`, data),
+  getResponses:  (id)        => api.get(`/forms/${id}/responses`),
+  export:        (id)        => api.get(`/forms/${id}/export`, { responseType: 'blob' }),
+  delete:        (id)        => api.delete(`/forms/${id}`),
 }
 
 // ─── Notifications ────────────────────────────────────────────────────────────
