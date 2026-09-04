@@ -176,13 +176,23 @@ public class EventController {
         }
     }
 
-    /** Admin monitors all schools' implementations for an event */
+    /** Public & Admin: get all schools' implementations for an event */
     @GetMapping("/{id}/implementations")
-    @PreAuthorize("hasRole('ADMIN')")
     @Transactional(readOnly = true)
     public ResponseEntity<ApiResponse<List<EventImplementationResponse>>> getImplementations(
             @PathVariable Long id) {
         List<EventImplementationResponse> list = implRepository.findByEventId(id).stream()
+            .map(EventImplementationResponse::from)
+            .toList();
+        return ResponseEntity.ok(ApiResponse.success(list));
+    }
+
+    /** Public & Admin: get all event implementations for a specific school */
+    @GetMapping("/school/{schoolId}/implementations")
+    @Transactional(readOnly = true)
+    public ResponseEntity<ApiResponse<List<EventImplementationResponse>>> getSchoolImplementations(
+            @PathVariable Long schoolId) {
+        List<EventImplementationResponse> list = implRepository.findBySchoolIdWithPhotos(schoolId).stream()
             .map(EventImplementationResponse::from)
             .toList();
         return ResponseEntity.ok(ApiResponse.success(list));

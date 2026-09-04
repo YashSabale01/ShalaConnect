@@ -120,8 +120,9 @@ export const eventApi = {
     const fd = new FormData(); fd.append('file', file)
     return api.post(`/events/${id}/implement/photo`, fd, { headers: { 'Content-Type': 'multipart/form-data' } })
   },
-  getImplementations:  (id)      => api.get(`/events/${id}/implementations`),
-  getMyImplementation: (id)      => api.get(`/events/${id}/my-implementation`),
+  getImplementations:        (id)       => api.get(`/events/${id}/implementations`),
+  getSchoolImplementations:  (schoolId) => api.get(`/events/school/${schoolId}/implementations`),
+  getMyImplementation:       (id)       => api.get(`/events/${id}/my-implementation`),
 }
 
 // ─── Forms ────────────────────────────────────────────────────────────────────

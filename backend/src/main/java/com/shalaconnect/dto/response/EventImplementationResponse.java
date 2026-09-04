@@ -10,6 +10,8 @@ import java.util.List;
 public class EventImplementationResponse {
     private Long id;
     private Long eventId;
+    private String eventTitle;
+    private java.time.LocalDate eventDate;
     private Long schoolId;
     private String schoolName;
     private String submittedByName;
@@ -25,6 +27,8 @@ public class EventImplementationResponse {
         return EventImplementationResponse.builder()
             .id(i.getId())
             .eventId(i.getEvent() != null ? i.getEvent().getId() : null)
+            .eventTitle(i.getEvent() != null ? i.getEvent().getTitle() : null)
+            .eventDate(i.getEvent() != null ? i.getEvent().getEventDate() : null)
             .schoolId(i.getSchool().getId())
             .schoolName(i.getSchool().getName())
             .submittedByName(i.getSubmittedBy() != null ? i.getSubmittedBy().getName() : null)

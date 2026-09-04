@@ -52,6 +52,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/schools/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/attendance/school/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/events").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/events/**").permitAll()
                 .requestMatchers("/api/health").permitAll()
                 .requestMatchers("/uploads/**").permitAll()
                 // Headmaster-specific POST endpoints — must come BEFORE broad admin POST rules

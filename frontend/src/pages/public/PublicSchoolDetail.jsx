@@ -1,9 +1,11 @@
+import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { schoolApi, attendanceApi } from '../../services/api'
+import { schoolApi, attendanceApi, eventApi } from '../../services/api'
 import { useApi } from '../../hooks/useApi'
 import {
   ArrowLeft, Building2, MapPin, Phone, Mail, Users,
-  Trophy, TrendingUp, GraduationCap, CalendarCheck2
+  Trophy, TrendingUp, GraduationCap, CalendarCheck2,
+  Camera, Calendar, X, ZoomIn, Sparkles
 } from 'lucide-react'
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid
@@ -15,6 +17,8 @@ export default function PublicSchoolDetail() {
   const { id } = useParams()
   const { data: school, loading: sLoading } = useApi(() => schoolApi.getById(id), [id])
   const { data: attendance } = useApi(() => attendanceApi.getBySchool(id), [id])
+  const { data: implementations, loading: iLoading } = useApi(() => eventApi.getSchoolImplementations(id), [id])
+  const [selectedPhoto, setSelectedPhoto] = useState(null)
 
   const chartData = (attendance || []).slice(0, 30).reverse().map(r => ({
     date: format(new Date(r.attendanceDate), 'dd MMM'),
@@ -39,6 +43,8 @@ export default function PublicSchoolDetail() {
     </div>
   )
 
+  const activeImplementations = (implementations || []).filter(impl => impl.photoPaths?.length > 0 || impl.description)
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Navbar */}
@@ -50,7 +56,7 @@ export default function PublicSchoolDetail() {
           </Link>
           <div className="flex items-center gap-2">
             <GraduationCap className="w-5 h-5 text-primary-600" />
-            <span className="font-bold text-gray-900 text-sm">ShalaConnect</span>
+            <span className="font-bold text-gray-900 text-sm">ShalaConnect | शाळाकनेक्ट</span>
           </div>
         </div>
       </nav>
@@ -65,10 +71,10 @@ export default function PublicSchoolDetail() {
             ) : (
               <Building2 className="w-20 h-20 text-white/30" />
             )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
             <div className="absolute bottom-0 left-0 p-6 text-white">
-              <h1 className="text-2xl font-bold">{school.name}</h1>
-              <p className="text-sm text-white/80 font-mono mt-1">UDISE: {school.udiseCode}</p>
+              <h1 className="text-2xl font-bold drop-shadow-sm">{school.name}</h1>
+              <p className="text-sm text-white/90 font-mono mt-1">UDISE: {school.udiseCode}</p>
             </div>
           </div>
 
@@ -92,7 +98,7 @@ export default function PublicSchoolDetail() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           {/* School info */}
           <div className="card p-6 space-y-4">
             <h2 className="font-semibold text-gray-900">School Information</h2>
@@ -186,7 +192,121 @@ export default function PublicSchoolDetail() {
             )}
           </div>
         </div>
+
+        {/* Event Implementations & Photo Proof Gallery */}
+        <div className="card p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <Camera className="w-5 h-5 text-primary-600" />
+                School Activities & Event Celebrations (शालेय उपक्रम व छायाचित्रे)
+              </h2>
+              <p className="text-sm text-gray-500 mt-0.5">
+                Official event implementation reports and photo proof uploaded by the school
+              </p>
+            </div>
+            {activeImplementations.length > 0 && (
+              <span className="badge badge-blue">
+                {activeImplementations.length} Events Documented
+              </span>
+            )}
+          </div>
+
+          {iLoading ? (
+            <div className="py-12 flex justify-center">
+              <div className="w-6 h-6 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : activeImplementations.length === 0 ? (
+            <div className="text-center py-12 text-gray-400 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+              <Camera className="w-10 h-10 mx-auto mb-2 text-gray-300" />
+              <p className="text-sm font-medium text-gray-600">No event photos uploaded yet</p>
+              <p className="text-xs text-gray-400 mt-1">
+                Event implementation photos will appear here once submitted by the school.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {activeImplementations.map(impl => (
+                <div key={impl.id} className="border border-gray-100 rounded-2xl p-5 bg-gradient-to-br from-white to-gray-50/50 shadow-sm">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+                    <div>
+                      <h3 className="font-bold text-gray-900 text-base">
+                        {impl.eventTitle || 'Cluster Event Celebration'}
+                      </h3>
+                      {impl.eventDate && (
+                        <div className="flex items-center gap-1.5 text-xs text-gray-400 mt-0.5">
+                          <Calendar className="w-3.5 h-3.5" />
+                          <span>{format(new Date(impl.eventDate), 'dd MMMM yyyy')}</span>
+                        </div>
+                      )}
+                    </div>
+                    {impl.photoPaths?.length > 0 && (
+                      <span className="badge badge-green text-xs w-fit">
+                        📸 {impl.photoPaths.length} Photo{impl.photoPaths.length > 1 ? 's' : ''}
+                      </span>
+                    )}
+                  </div>
+
+                  {impl.description && (
+                    <div className="p-3.5 bg-white border border-gray-100 rounded-xl text-sm text-gray-700 mb-4 whitespace-pre-wrap leading-relaxed">
+                      {impl.description}
+                    </div>
+                  )}
+
+                  {/* Photo Gallery Grid */}
+                  {impl.photoPaths?.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2.5">
+                        Activity Photographs
+                      </p>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                        {impl.photoPaths.map((photo, pIdx) => (
+                          <div
+                            key={pIdx}
+                            onClick={() => setSelectedPhoto(`/uploads/${photo}`)}
+                            className="group relative h-32 rounded-xl overflow-hidden cursor-pointer border border-gray-200 bg-gray-100 shadow-sm transition-transform duration-200 hover:-translate-y-1 hover:shadow-md"
+                          >
+                            <img
+                              src={`/uploads/${photo}`}
+                              alt={`Event photo ${pIdx + 1}`}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              loading="lazy"
+                            />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <ZoomIn className="w-6 h-6 text-white drop-shadow-md" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Lightbox / Zoom Modal */}
+      {selectedPhoto && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setSelectedPhoto(null)}
+        >
+          <button
+            onClick={() => setSelectedPhoto(null)}
+            className="absolute top-4 right-4 text-white hover:text-gray-300 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+          >
+            <X className="w-6 h-6" />
+          </button>
+          <img
+            src={selectedPhoto}
+            alt="Enlarged implementation photograph"
+            className="max-h-[90vh] max-w-[95vw] rounded-xl shadow-2xl object-contain"
+            onClick={e => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   )
 }

@@ -109,6 +109,7 @@ Deployments are automated through [`.github/workflows/deploy.yml`](./.github/wor
 - Admin publishes cluster-wide events and celebrations (e.g. Independence Day, Sports Meet, Science Exhibition).
 - Headmasters submit implementation reports with photographic proof.
 - Full multi-photo support with deduplicated storage and direct high-resolution previews.
+- **Public Photo Galleries**: Citizens and parents can explore event celebration photos and implementation notes directly on the Public Portal and individual school profile pages.
 
 ### 7. Dynamic Data Collection Forms (माहिती प्रपत्रे)
 - Admin form builder supporting dynamic fields: `TEXT`, `NUMBER`, `SELECT`, `TEXTAREA`, `DATE`, `CHECKBOX`.
@@ -283,7 +284,8 @@ ShalaConnect/
 | `POST` | `/events` | `ADMIN` | Announces a new celebration, sports, or cultural event |
 | `PUT` | `/events/{id}` | `ADMIN` | Modifies event information |
 | `DELETE` | `/events/{id}` | `ADMIN` | Soft-deletes an event |
-| `GET` | `/events/{id}/implementations` | `ADMIN` | Views all school implementation reports and photo proof |
+| `GET` | `/events/{id}/implementations` | Public | Views all school implementation reports and photo proof |
+| `GET` | `/events/school/{schoolId}/implementations` | Public | Views all event implementation reports and photos for a specific school |
 | `GET` | `/events/{id}/my-implementation` | `HEADMASTER` | Views own school's implementation status |
 | `POST` | `/events/{id}/implement` | `HEADMASTER` | Submits school event report and activity notes |
 | `POST` | `/events/{id}/implement/photo` | `HEADMASTER` | Uploads photographic proof for event implementation |
