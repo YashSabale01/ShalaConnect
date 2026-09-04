@@ -6,7 +6,7 @@ import EmptyState from '../../components/ui/EmptyState'
 import { ListSkeleton } from '../../components/ui/Skeleton'
 import {
   ClipboardList, CheckCircle2, Clock, AlertCircle, Send,
-  Plus, Trash2, Copy, Layers, Eye
+  Plus, Trash2, Copy, Eye, Table, LayoutList
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
@@ -18,15 +18,20 @@ export default function HeadmasterFormsPage() {
   const [viewingForm,    setViewingForm]    = useState(null)
   const [viewingData,    setViewingData]    = useState(null)
   const [rows,           setRows]           = useState([{}])
+  const [viewMode,       setViewMode]       = useState('table') // 'table' | 'cards'
   const [submitting,     setSubmitting]     = useState(false)
   const [errors,         setErrors]         = useState({})
 
   const openForm = async (form) => {
     try {
       const res = await formApi.getById(form.id)
-      setActiveForm(res.data.data)
+      const data = res.data.data
+      setActiveForm(data)
       setRows([{}])
       setErrors({})
+      // Default to table mode if 4 or fewer fields, otherwise cards
+      const fieldCount = getFields(data).length
+      setViewMode(fieldCount <= 5 ? 'table' : 'cards')
     } catch {
       toast.error('Failed to load form')
     }
@@ -38,7 +43,6 @@ export default function HeadmasterFormsPage() {
       const data = res.data.data
       setViewingForm(data)
 
-      // Parse response data
       let parsed = []
       try {
         const raw = data.myResponse?.answersJson || data.answersJson
@@ -87,7 +91,6 @@ export default function HeadmasterFormsPage() {
   const removeRow = (index) => {
     if (rows.length <= 1) return
     setRows(r => r.filter((_, i) => i !== index))
-    // Clear errors for removed row
     setErrors(prev => {
       const updated = { ...prev }
       delete updated[index]
@@ -142,7 +145,7 @@ export default function HeadmasterFormsPage() {
       const payload = rows.length > 1 ? { isMultiRow: true, rows } : rows[0]
       await formApi.respond(activeForm.id, { answersJson: JSON.stringify(payload) })
       toast.success(rows.length > 1
-        ? `Form submitted successfully with ${rows.length} rows!`
+        ? `Form submitted with ${rows.length} rows!`
         : 'Form submitted successfully!')
       setActiveForm(null)
       refetch()
@@ -153,17 +156,17 @@ export default function HeadmasterFormsPage() {
     }
   }
 
-  const renderField = (field, rIdx) => {
+  const renderField = (field, rIdx, compact = false) => {
     const value = rows[rIdx]?.[field.id] || ''
     const error = errors[rIdx]?.[field.id]
-    const baseClass = `input text-sm py-2${error ? ' input-error' : ''}`
+    const baseClass = `input w-full ${compact ? 'text-xs py-1.5 px-2' : 'text-sm py-2'}${error ? ' input-error' : ''}`
 
     switch (field.type) {
       case 'textarea':
         return (
           <textarea
             className={baseClass}
-            rows={2}
+            rows={compact ? 1 : 2}
             value={value}
             onChange={e => updateRowField(rIdx, field.id, e.target.value)}
             placeholder={`Enter ${field.label}…`}
@@ -203,9 +206,9 @@ export default function HeadmasterFormsPage() {
         )
       case 'radio':
         return (
-          <div className="flex flex-wrap gap-4 mt-1">
+          <div className={clsx('flex flex-wrap gap-2', compact ? 'text-xs' : 'text-sm mt-1')}>
             {(field.options || []).map(opt => (
-              <label key={opt} className="flex items-center gap-2 cursor-pointer text-sm">
+              <label key={opt} className="flex items-center gap-1.5 cursor-pointer">
                 <input
                   type="radio"
                   name={`${field.id}_${rIdx}`}
@@ -235,8 +238,6 @@ export default function HeadmasterFormsPage() {
   const pending   = (forms || []).filter(f => !f.hasResponded)
   const completed = (forms || []).filter(f => f.hasResponded)
 
-  if (loading) return <ListSkeleton items={4} />
-
   return (
     <div className="page-transition">
       <div className="page-header">
@@ -245,7 +246,7 @@ export default function HeadmasterFormsPage() {
           <p className="page-subtitle">
             {pending.length > 0
               ? `${pending.length} pending form${pending.length > 1 ? 's' : ''} to fill`
-              : 'All forms completed'}
+              : 'All assigned forms completed'}
           </p>
         </div>
       </div>
@@ -322,7 +323,7 @@ export default function HeadmasterFormsPage() {
                         onClick={() => openViewResponse(f)}
                         className="btn-secondary btn-sm flex items-center gap-1"
                       >
-                        <Eye className="w-3.5 h-3.5" /> View
+                        <Eye className="w-3.5 h-3.5" /> View Response
                       </button>
                     </div>
                   </div>
@@ -333,7 +334,7 @@ export default function HeadmasterFormsPage() {
         </div>
       )}
 
-      {/* Multi-Row Form Modal */}
+      {/* Multi-Row / Tabular Form Modal */}
       {activeForm && (
         <Modal
           open={!!activeForm}
@@ -342,12 +343,12 @@ export default function HeadmasterFormsPage() {
           size="xl"
           footer={
             <div className="flex items-center justify-between w-full">
-              <div className="text-xs text-gray-500 flex items-center gap-2">
-                <span className="font-medium text-gray-700">
-                  Total Rows / Entries: {rows.length}
+              <div className="text-xs text-gray-600 flex items-center gap-2">
+                <span className="font-semibold text-gray-800">
+                  Total Rows: {rows.length}
                 </span>
                 {rows.length > 1 && (
-                  <span className="badge badge-blue text-[10px]">Multi-Row Mode</span>
+                  <span className="badge badge-blue text-[10px]">Multi-Row Table</span>
                 )}
               </div>
               <div className="flex items-center gap-2">
@@ -366,7 +367,7 @@ export default function HeadmasterFormsPage() {
                   {submitting ? 'Submitting…' : (
                     <>
                       <Send className="w-4 h-4" />
-                      Submit {rows.length > 1 ? `All ${rows.length} Entries` : 'Response'}
+                      Submit {rows.length > 1 ? `(${rows.length} Rows)` : 'Response'}
                     </>
                   )}
                 </button>
@@ -374,104 +375,181 @@ export default function HeadmasterFormsPage() {
             </div>
           }
         >
-          <div className="space-y-6">
-            {/* Form Info Banner */}
+          <div className="space-y-5">
+            {/* Form Description */}
             {activeForm.description && (
               <div className="p-3.5 bg-blue-50 border border-blue-100 rounded-xl text-sm text-blue-800 leading-relaxed">
                 {activeForm.description}
               </div>
             )}
 
-            {/* Helper Notice for Multiple Entries */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900">
-              <div className="flex items-center gap-2">
-                <Layers className="w-4 h-4 text-amber-600 flex-shrink-0" />
-                <span>
-                  <strong>Need to submit multiple records (e.g. 4 Teachers, multiple students)?</strong>
-                  <br />Click <strong>"+ Add Another Row"</strong> below to add rows for each person.
-                </span>
+            {/* Controls Bar: View Mode & Add Row */}
+            <div className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-xl p-2.5">
+              <div className="flex items-center gap-1">
+                <span className="text-xs font-semibold text-gray-500 mr-1 hidden sm:inline">View Mode:</span>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('table')}
+                  className={clsx(
+                    'btn-xs flex items-center gap-1 rounded-lg px-2.5 py-1',
+                    viewMode === 'table'
+                      ? 'bg-white text-primary-700 shadow-sm border border-gray-200 font-semibold'
+                      : 'text-gray-500 hover:text-gray-700'
+                  )}
+                >
+                  <Table className="w-3.5 h-3.5" /> Table Grid
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('cards')}
+                  className={clsx(
+                    'btn-xs flex items-center gap-1 rounded-lg px-2.5 py-1',
+                    viewMode === 'cards'
+                      ? 'bg-white text-primary-700 shadow-sm border border-gray-200 font-semibold'
+                      : 'text-gray-500 hover:text-gray-700'
+                  )}
+                >
+                  <LayoutList className="w-3.5 h-3.5" /> Cards View
+                </button>
               </div>
+
               <button
                 type="button"
                 onClick={addRow}
-                className="btn-secondary btn-xs bg-white text-amber-800 border-amber-300 hover:bg-amber-100 flex items-center gap-1.5 self-start sm:self-auto flex-shrink-0"
+                className="btn-primary btn-xs flex items-center gap-1"
               >
-                <Plus className="w-3.5 h-3.5" /> + Add Another Row
+                <Plus className="w-3.5 h-3.5" /> + Add Row
               </button>
             </div>
 
-            {/* Rows List */}
-            <div className="space-y-5">
-              {rows.map((row, rIdx) => (
-                <div
-                  key={rIdx}
-                  className={clsx(
-                    'rounded-2xl border p-5 transition-all shadow-sm',
-                    rows.length > 1
-                      ? 'border-gray-200 bg-gray-50/60'
-                      : 'border-transparent bg-transparent p-0 shadow-none'
-                  )}
-                >
-                  {rows.length > 1 && (
-                    <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-200">
-                      <div className="flex items-center gap-2">
-                        <span className="w-6 h-6 rounded-full bg-primary-600 text-white font-bold text-xs flex items-center justify-center">
-                          {rIdx + 1}
-                        </span>
-                        <h4 className="font-semibold text-gray-800 text-sm">
-                          Entry #{rIdx + 1} (नोंद {rIdx + 1})
-                        </h4>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => duplicateRow(rIdx)}
-                          title="Duplicate this row"
-                          className="btn-ghost btn-xs text-gray-500 hover:text-gray-700 flex items-center gap-1"
-                        >
-                          <Copy className="w-3 h-3" /> Duplicate
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => removeRow(rIdx)}
-                          title="Remove this row"
-                          className="btn-ghost btn-xs text-red-500 hover:text-red-700 hover:bg-red-50 flex items-center gap-1"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" /> Delete
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Form fields for this row */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {getFields().map((field, fIdx) => (
-                      <div
-                        key={field.id}
-                        className={clsx(
-                          'form-group mb-0',
-                          field.type === 'textarea' && 'sm:col-span-2'
-                        )}
-                      >
-                        <label className="label text-xs mb-1">
-                          {rows.length > 1 ? field.label : `${fIdx + 1}. ${field.label}`}
+            {/* TABLE GRID VIEW */}
+            {viewMode === 'table' && (
+              <div className="overflow-x-auto border border-gray-200 rounded-xl max-h-[60vh] overflow-y-auto">
+                <table className="w-full text-left text-xs border-collapse min-w-[600px]">
+                  <thead className="bg-gray-100 text-gray-700 sticky top-0 z-10 border-b border-gray-200">
+                    <tr>
+                      <th className="py-2.5 px-3 w-10 text-center font-bold text-gray-500">#</th>
+                      {getFields().map(field => (
+                        <th key={field.id} className="py-2.5 px-2 font-semibold">
+                          {field.label}
                           {field.required && <span className="text-red-500 ml-0.5">*</span>}
-                        </label>
-                        {renderField(field, rIdx)}
-                        {errors[rIdx]?.[field.id] && (
-                          <p className="error-message text-xs mt-1 flex items-center gap-1">
-                            <AlertCircle className="w-3 h-3 text-red-500" />
-                            {errors[rIdx][field.id]}
-                          </p>
-                        )}
-                      </div>
+                        </th>
+                      ))}
+                      <th className="py-2.5 px-2 w-16 text-center font-semibold">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 bg-white">
+                    {rows.map((row, rIdx) => (
+                      <tr key={rIdx} className="hover:bg-gray-50/50">
+                        <td className="py-2 px-2 text-center font-bold text-gray-400 bg-gray-50/40">
+                          {rIdx + 1}
+                        </td>
+                        {getFields().map(field => (
+                          <td key={field.id} className="py-2 px-2 align-top">
+                            {renderField(field, rIdx, true)}
+                            {errors[rIdx]?.[field.id] && (
+                              <span className="text-[10px] text-red-500 block mt-0.5">
+                                {errors[rIdx][field.id]}
+                              </span>
+                            )}
+                          </td>
+                        ))}
+                        <td className="py-2 px-2 text-center align-top">
+                          <div className="flex items-center justify-center gap-1 mt-1">
+                            <button
+                              type="button"
+                              onClick={() => duplicateRow(rIdx)}
+                              title="Duplicate row"
+                              className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded"
+                            >
+                              <Copy className="w-3.5 h-3.5" />
+                            </button>
+                            {rows.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => removeRow(rIdx)}
+                                title="Delete row"
+                                className="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
                     ))}
-                  </div>
-                </div>
-              ))}
-            </div>
+                  </tbody>
+                </table>
+              </div>
+            )}
 
-            {/* Bottom Add Row Button */}
+            {/* STACKED CARDS VIEW */}
+            {viewMode === 'cards' && (
+              <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+                {rows.map((row, rIdx) => (
+                  <div
+                    key={rIdx}
+                    className={clsx(
+                      'rounded-xl border p-4 transition-all',
+                      rows.length > 1 ? 'border-gray-200 bg-gray-50/50 shadow-sm' : 'border-gray-100 bg-white'
+                    )}
+                  >
+                    {rows.length > 1 && (
+                      <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-200">
+                        <span className="font-semibold text-gray-700 text-xs flex items-center gap-1.5">
+                          <span className="w-5 h-5 rounded-full bg-primary-600 text-white font-bold text-[10px] flex items-center justify-center">
+                            {rIdx + 1}
+                          </span>
+                          Row #{rIdx + 1}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => duplicateRow(rIdx)}
+                            className="btn-ghost btn-xs text-gray-500 hover:text-gray-700 flex items-center gap-1"
+                          >
+                            <Copy className="w-3 h-3" /> Duplicate
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeRow(rIdx)}
+                            className="btn-ghost btn-xs text-red-500 hover:text-red-700 hover:bg-red-50 flex items-center gap-1"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" /> Delete
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                      {getFields().map((field, fIdx) => (
+                        <div
+                          key={field.id}
+                          className={clsx(
+                            'form-group mb-0',
+                            field.type === 'textarea' && 'sm:col-span-2'
+                          )}
+                        >
+                          <label className="label text-xs mb-1">
+                            {field.label}
+                            {field.required && <span className="text-red-500 ml-0.5">*</span>}
+                          </label>
+                          {renderField(field, rIdx, false)}
+                          {errors[rIdx]?.[field.id] && (
+                            <p className="error-message text-xs mt-1 flex items-center gap-1">
+                              <AlertCircle className="w-3 h-3 text-red-500" />
+                              {errors[rIdx][field.id]}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Bottom Add Row Bar */}
             <div className="pt-2 flex justify-center">
               <button
                 type="button"
@@ -479,7 +557,7 @@ export default function HeadmasterFormsPage() {
                 className="btn-secondary btn-sm flex items-center gap-2 border-dashed border-gray-300 hover:border-primary-500 hover:text-primary-600 px-6 py-2 rounded-xl"
               >
                 <Plus className="w-4 h-4 text-primary-600" />
-                + Add Another Row / Person (+ आणखी {rows.length + 1} वी नोंद जोडा)
+                + Add Row ({rows.length + 1})
               </button>
             </div>
           </div>
@@ -491,7 +569,7 @@ export default function HeadmasterFormsPage() {
         <Modal
           open={!!viewingForm}
           onClose={() => setViewingForm(null)}
-          title={`Submitted: ${viewingForm.title}`}
+          title={`Submitted Response: ${viewingForm.title}`}
           size="lg"
           footer={
             <button onClick={() => setViewingForm(null)} className="btn-secondary">
@@ -510,7 +588,7 @@ export default function HeadmasterFormsPage() {
                 <table className="w-full text-left text-xs border-collapse">
                   <thead className="bg-gray-50 border-b border-gray-200 text-gray-600">
                     <tr>
-                      <th className="py-2.5 px-3 font-semibold w-12">#</th>
+                      <th className="py-2.5 px-3 font-semibold w-12 text-center">#</th>
                       {getFields(viewingForm).map(f => (
                         <th key={f.id} className="py-2.5 px-3 font-semibold">
                           {f.label}
@@ -521,7 +599,9 @@ export default function HeadmasterFormsPage() {
                   <tbody className="divide-y divide-gray-100">
                     {viewingData.map((rowItem, idx) => (
                       <tr key={idx} className="hover:bg-gray-50/60">
-                        <td className="py-2.5 px-3 font-bold text-gray-400">{idx + 1}</td>
+                        <td className="py-2.5 px-3 text-center font-bold text-gray-400 bg-gray-50/30">
+                          {idx + 1}
+                        </td>
                         {getFields(viewingForm).map(f => (
                           <td key={f.id} className="py-2.5 px-3 text-gray-800">
                             {rowItem[f.id] ? String(rowItem[f.id]) : '—'}
