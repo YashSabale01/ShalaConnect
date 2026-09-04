@@ -31,7 +31,11 @@ public class FormResponse {
 
     @Column(updatable = false)
     private LocalDateTime submittedAt;
+    private LocalDateTime updatedAt;
 
     @PrePersist
-    protected void onCreate() { submittedAt = LocalDateTime.now(); }
+    protected void onCreate() { submittedAt = LocalDateTime.now(); updatedAt = LocalDateTime.now(); }
+
+    @PreUpdate
+    protected void onUpdate() { updatedAt = LocalDateTime.now(); }
 }

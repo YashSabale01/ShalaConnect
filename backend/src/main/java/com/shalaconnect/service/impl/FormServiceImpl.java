@@ -93,16 +93,28 @@ public class FormServiceImpl implements FormService {
         User submitter = userRepository.findByEmailWithSchool(submitterEmail)
             .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        if (responseRepository.existsByFormIdAndSubmittedById(formId, submitter.getId())) {
-            throw new BadRequestException("You have already submitted a response for this form");
+        // Validate deadline
+        if (form.getDeadline() != null && java.time.LocalDateTime.now().isAfter(form.getDeadline())) {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd MMM yyyy, hh:mm a");
+            throw new BadRequestException("The deadline for submitting or updating this form has passed (" 
+                + form.getDeadline().format(formatter) + ")");
         }
 
-        FormResponse response = FormResponse.builder()
-            .form(form)
-            .submittedBy(submitter)
-            .school(submitter.getSchool())
-            .answersJson(answersJson)
-            .build();
+        Optional<FormResponse> existing = responseRepository.findByFormIdAndSubmittedById(formId, submitter.getId());
+        boolean isUpdate = existing.isPresent();
+        FormResponse response;
+        if (isUpdate) {
+            response = existing.get();
+            response.setAnswersJson(answersJson);
+            response.setUpdatedAt(java.time.LocalDateTime.now());
+        } else {
+            response = FormResponse.builder()
+                .form(form)
+                .submittedBy(submitter)
+                .school(submitter.getSchool())
+                .answersJson(answersJson)
+                .build();
+        }
 
         responseRepository.save(response);
 
@@ -110,11 +122,12 @@ public class FormServiceImpl implements FormService {
         final Long formRespId = formId;
         final String schoolName = submitter.getSchool() != null ? submitter.getSchool().getName() : submitter.getName();
         final String formTitle = form.getTitle();
+        final String actionVerb = isUpdate ? "updated" : "submitted";
         userRepository.findByRoleAndActiveTrue(User.Role.ADMIN).forEach(admin -> {
             notificationRepository.save(Notification.builder()
                 .user(admin)
-                .title("Form Response Received")
-                .message(schoolName + " submitted response for: " + formTitle)
+                .title(isUpdate ? "Form Response Updated" : "Form Response Received")
+                .message(schoolName + " " + actionVerb + " response for: " + formTitle)
                 .type(Notification.NotificationType.FORM)
                 .referenceId(formRespId)
                 .referenceType("FORM")
@@ -123,7 +136,8 @@ public class FormServiceImpl implements FormService {
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("success", true);
-        result.put("message", "Form response submitted successfully");
+        result.put("message", isUpdate ? "Form response updated successfully" : "Form response submitted successfully");
+        result.put("updated", isUpdate);
         return result;
     }
 
@@ -290,6 +304,9 @@ public class FormServiceImpl implements FormService {
         map.put("description", form.getDescription());
         map.put("fieldsJson", form.getFieldsJson());
         map.put("deadline", form.getDeadline());
+        boolean isExpired = form.getDeadline() != null && java.time.LocalDateTime.now().isAfter(form.getDeadline());
+        map.put("isExpired", isExpired);
+        map.put("canEdit", !isExpired);
         map.put("createdAt", form.getCreatedAt());
         map.put("createdByName", form.getCreatedBy() != null ? form.getCreatedBy().getName() : null);
         map.put("responseCount", responseRepository.countByFormId(form.getId()));
@@ -302,6 +319,7 @@ public class FormServiceImpl implements FormService {
                     .ifPresent(resp -> {
                         map.put("myAnswersJson", resp.getAnswersJson());
                         map.put("mySubmittedAt", resp.getSubmittedAt());
+                        map.put("myUpdatedAt", resp.getUpdatedAt());
                     });
             }
             if (currentUser.getSchool() != null) {

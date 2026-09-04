@@ -6,7 +6,8 @@ import EmptyState from '../../components/ui/EmptyState'
 import { ListSkeleton } from '../../components/ui/Skeleton'
 import {
   ClipboardList, CheckCircle2, Clock, AlertCircle, Send,
-  Plus, Trash2, Copy, Eye, Table, LayoutList, School
+  Plus, Trash2, Copy, Eye, Table, LayoutList, School,
+  Edit3, Lock
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
@@ -15,6 +16,7 @@ import clsx from 'clsx'
 export default function HeadmasterFormsPage() {
   const { data: forms, loading, refetch } = useApi(() => formApi.getAll())
   const [activeForm,     setActiveForm]     = useState(null)
+  const [isEditing,      setIsEditing]      = useState(false)
   const [viewingForm,    setViewingForm]    = useState(null)
   const [viewingData,    setViewingData]    = useState(null)
   const [rows,           setRows]           = useState([{}])
@@ -22,18 +24,62 @@ export default function HeadmasterFormsPage() {
   const [submitting,     setSubmitting]     = useState(false)
   const [errors,         setErrors]         = useState({})
 
+  const getFields = (formObj = activeForm) => {
+    if (!formObj?.fieldsJson) return []
+    if (Array.isArray(formObj.fieldsJson)) return formObj.fieldsJson
+    try {
+      return typeof formObj.fieldsJson === 'string' ? JSON.parse(formObj.fieldsJson) : []
+    } catch {
+      return []
+    }
+  }
+
   const openForm = async (form) => {
     try {
       const res = await formApi.getById(form.id)
       const data = res.data.data
+      if (data.isExpired) {
+        toast.error('The deadline for this form has passed. Submissions are closed.')
+        return
+      }
       setActiveForm(data)
+      setIsEditing(false)
       setRows([{}])
       setErrors({})
-      // Default to table mode if 4 or fewer fields, otherwise cards
       const fieldCount = getFields(data).length
       setViewMode(fieldCount <= 5 ? 'table' : 'cards')
     } catch {
       toast.error('Failed to load form')
+    }
+  }
+
+  const openEditForm = async (form) => {
+    try {
+      const res = await formApi.getById(form.id)
+      const data = res.data.data
+      if (data.isExpired) {
+        toast.error('The deadline for this form has passed. Editing is locked.')
+        return
+      }
+      setActiveForm(data)
+      setIsEditing(true)
+      setErrors({})
+
+      let existingRows = [{}]
+      const raw = data.myAnswersJson
+      if (raw) {
+        try {
+          const json = typeof raw === 'string' ? JSON.parse(raw) : raw
+          if (Array.isArray(json)) existingRows = json
+          else if (json.rows && Array.isArray(json.rows)) existingRows = json.rows
+          else existingRows = [json]
+        } catch {}
+      }
+      setRows(existingRows.length > 0 ? existingRows : [{}])
+      const fieldCount = getFields(data).length
+      setViewMode(fieldCount <= 5 ? 'table' : 'cards')
+    } catch {
+      toast.error('Failed to load response for editing')
     }
   }
 
@@ -45,7 +91,7 @@ export default function HeadmasterFormsPage() {
 
       let parsed = []
       try {
-        const raw = data.myResponse?.answersJson || data.answersJson
+        const raw = data.myAnswersJson || data.answersJson
         if (raw) {
           const json = typeof raw === 'string' ? JSON.parse(raw) : raw
           if (Array.isArray(json)) {
@@ -62,16 +108,6 @@ export default function HeadmasterFormsPage() {
       setViewingData(parsed)
     } catch {
       toast.error('Failed to load response')
-    }
-  }
-
-  const getFields = (formObj = activeForm) => {
-    if (!formObj?.fieldsJson) return []
-    if (Array.isArray(formObj.fieldsJson)) return formObj.fieldsJson
-    try {
-      return typeof formObj.fieldsJson === 'string' ? JSON.parse(formObj.fieldsJson) : []
-    } catch {
-      return []
     }
   }
 
@@ -143,11 +179,10 @@ export default function HeadmasterFormsPage() {
     setSubmitting(true)
     try {
       const payload = rows.length > 1 ? { isMultiRow: true, rows } : rows[0]
-      await formApi.respond(activeForm.id, { answersJson: JSON.stringify(payload) })
-      toast.success(rows.length > 1
-        ? `Form submitted with ${rows.length} rows!`
-        : 'Form submitted successfully!')
+      const res = await formApi.respond(activeForm.id, { answersJson: JSON.stringify(payload) })
+      toast.success(res.data?.message || (isEditing ? 'Response updated successfully!' : 'Response submitted successfully!'))
       setActiveForm(null)
+      setIsEditing(false)
       refetch()
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to submit form')
@@ -259,6 +294,7 @@ export default function HeadmasterFormsPage() {
         />
       ) : (
         <div className="space-y-6">
+          {/* Pending Forms */}
           {pending.length > 0 && (
             <div>
               <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
@@ -280,17 +316,24 @@ export default function HeadmasterFormsPage() {
                           <div className="flex gap-4 text-xs text-gray-400 mt-2">
                             <span>Assigned: {f.createdAt && format(new Date(f.createdAt), 'dd MMM yyyy')}</span>
                             {f.deadline && (
-                              <span className="flex items-center gap-1 text-red-500 font-medium">
+                              <span className={clsx('flex items-center gap-1 font-medium', f.isExpired ? 'text-gray-400' : 'text-red-500')}>
                                 <Clock className="w-3 h-3" />
-                                Due: {format(new Date(f.deadline), 'dd MMM yyyy')}
+                                {f.isExpired ? 'Expired: ' : 'Due: '}
+                                {format(new Date(f.deadline), 'dd MMM yyyy, hh:mm a')}
                               </span>
                             )}
                           </div>
                         </div>
                       </div>
-                      <button onClick={() => openForm(f)} className="btn-primary btn-sm flex-shrink-0">
-                        Fill Form
-                      </button>
+                      {f.isExpired ? (
+                        <span className="badge badge-gray text-xs flex items-center gap-1">
+                          <Lock className="w-3 h-3" /> Deadline Passed
+                        </span>
+                      ) : (
+                        <button onClick={() => openForm(f)} className="btn-primary btn-sm flex-shrink-0">
+                          Fill Form
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -298,15 +341,16 @@ export default function HeadmasterFormsPage() {
             </div>
           )}
 
+          {/* Completed Forms with View & Edit Support */}
           {completed.length > 0 && (
             <div>
               <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">
-                Completed ({completed.length})
+                Completed Forms ({completed.length})
               </h2>
               <div className="space-y-3">
                 {completed.map(f => (
-                  <div key={f.id} className="card p-5 border-l-4 border-l-green-500 flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-4 flex-1 min-w-0">
+                  <div key={f.id} className="card p-5 border-l-4 border-l-green-500 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div className="flex items-start gap-4 flex-1 min-w-0">
                       <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center flex-shrink-0">
                         <CheckCircle2 className="w-5 h-5 text-green-600" />
                       </div>
@@ -315,16 +359,44 @@ export default function HeadmasterFormsPage() {
                         {f.description && (
                           <p className="text-sm text-gray-400 mt-0.5 line-clamp-1">{f.description}</p>
                         )}
+                        <div className="flex items-center gap-3 text-xs text-gray-400 mt-1.5">
+                          {f.deadline && (
+                            <span className={clsx('flex items-center gap-1', f.isExpired ? 'text-gray-400' : 'text-amber-600 font-medium')}>
+                              <Clock className="w-3 h-3" />
+                              Deadline: {format(new Date(f.deadline), 'dd MMM yyyy, hh:mm a')}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
+
+                    <div className="flex items-center gap-2 flex-shrink-0 self-end sm:self-auto">
                       <span className="badge badge-green">Submitted</span>
                       <button
                         onClick={() => openViewResponse(f)}
                         className="btn-secondary btn-sm flex items-center gap-1"
+                        title="View your submitted response"
                       >
-                        <Eye className="w-3.5 h-3.5" /> View Response
+                        <Eye className="w-3.5 h-3.5" /> View
                       </button>
+
+                      {/* Edit Response Until Deadline */}
+                      {!f.isExpired ? (
+                        <button
+                          onClick={() => openEditForm(f)}
+                          className="btn-primary btn-sm flex items-center gap-1"
+                          title="Edit response before deadline"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" /> Edit Response
+                        </button>
+                      ) : (
+                        <span
+                          className="badge badge-gray text-[10px] flex items-center gap-1"
+                          title="Deadline has passed. Editing is locked."
+                        >
+                          <Lock className="w-3 h-3" /> Locked
+                        </span>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -334,12 +406,12 @@ export default function HeadmasterFormsPage() {
         </div>
       )}
 
-      {/* Multi-Row / Tabular Form Modal */}
+      {/* Fill / Edit Form Modal */}
       {activeForm && (
         <Modal
           open={!!activeForm}
-          onClose={() => setActiveForm(null)}
-          title={activeForm.title}
+          onClose={() => { setActiveForm(null); setIsEditing(false) }}
+          title={isEditing ? `Edit Response: ${activeForm.title}` : activeForm.title}
           size="xl"
           footer={
             <div className="flex items-center justify-between w-full">
@@ -347,13 +419,13 @@ export default function HeadmasterFormsPage() {
                 <span className="font-semibold text-gray-800">
                   Total Rows: {rows.length}
                 </span>
-                {rows.length > 1 && (
-                  <span className="badge badge-blue text-[10px]">Multi-Row Table</span>
+                {isEditing && (
+                  <span className="badge badge-amber text-[10px]">Editing Mode</span>
                 )}
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setActiveForm(null)}
+                  onClick={() => { setActiveForm(null); setIsEditing(false) }}
                   className="btn-secondary"
                   disabled={submitting}
                 >
@@ -364,10 +436,12 @@ export default function HeadmasterFormsPage() {
                   className="btn-primary"
                   disabled={submitting}
                 >
-                  {submitting ? 'Submitting…' : (
+                  {submitting ? 'Saving…' : (
                     <>
                       <Send className="w-4 h-4" />
-                      Submit {rows.length > 1 ? `(${rows.length} Rows)` : 'Response'}
+                      {isEditing
+                        ? `Update Response (${rows.length} Rows)`
+                        : `Submit (${rows.length} Rows)`}
                     </>
                   )}
                 </button>
@@ -376,14 +450,14 @@ export default function HeadmasterFormsPage() {
           }
         >
           <div className="space-y-5">
-            {/* Combined School Info Banner - Shown ONCE at the top */}
+            {/* Combined School Info Banner */}
             <div className="flex flex-wrap items-center justify-between gap-2 p-3 bg-gradient-to-r from-primary-50 to-blue-50/50 border border-primary-100 rounded-xl text-xs text-primary-950">
               <div className="flex items-center gap-2">
                 <div className="w-6 h-6 rounded-lg bg-primary-600 text-white flex items-center justify-center font-bold text-[10px] flex-shrink-0">
                   <School className="w-3.5 h-3.5" />
                 </div>
                 <span>
-                  <strong>School:</strong> {activeForm.schoolName || 'Your School'}
+                  <strong>School:</strong> {activeForm.schoolName || 'Your Assigned School'}
                   {activeForm.udiseCode && <span className="text-primary-700 ml-1 font-mono">(UDISE: {activeForm.udiseCode})</span>}
                 </span>
               </div>
@@ -391,6 +465,16 @@ export default function HeadmasterFormsPage() {
                 School Tenancy Verified
               </span>
             </div>
+
+            {/* Editing Notice Banner */}
+            {isEditing && (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-center gap-2">
+                <Edit3 className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                <span>
+                  <strong>Editing previously submitted response:</strong> You can add, edit, or remove rows until the deadline. Click <strong>"Update Response"</strong> to save your changes.
+                </span>
+              </div>
+            )}
 
             {/* Form Description */}
             {activeForm.description && (
@@ -588,9 +672,28 @@ export default function HeadmasterFormsPage() {
           title={`Submitted Response: ${viewingForm.title}`}
           size="lg"
           footer={
-            <button onClick={() => setViewingForm(null)} className="btn-secondary">
-              Close
-            </button>
+            <div className="flex items-center justify-between w-full">
+              <span className="text-xs text-gray-500">
+                {viewingForm.isExpired ? 'Form deadline passed (locked)' : 'Editable until deadline'}
+              </span>
+              <div className="flex items-center gap-2">
+                {!viewingForm.isExpired && (
+                  <button
+                    onClick={() => {
+                      const formToEdit = viewingForm
+                      setViewingForm(null)
+                      openEditForm(formToEdit)
+                    }}
+                    className="btn-primary btn-sm flex items-center gap-1"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" /> Edit This Response
+                  </button>
+                )}
+                <button onClick={() => setViewingForm(null)} className="btn-secondary btn-sm">
+                  Close
+                </button>
+              </div>
+            </div>
           }
         >
           <div className="space-y-4">
@@ -610,7 +713,10 @@ export default function HeadmasterFormsPage() {
 
             <div className="flex items-center justify-between text-xs text-gray-500 pb-2 border-b border-gray-100">
               <span>Form ID: #{viewingForm.id}</span>
-              <span>{viewingForm.mySubmittedAt && `Submitted: ${format(new Date(viewingForm.mySubmittedAt), 'dd/MM/yyyy HH:mm')}`}</span>
+              <span>
+                {viewingForm.mySubmittedAt && `Submitted: ${format(new Date(viewingForm.mySubmittedAt), 'dd/MM/yyyy HH:mm')}`}
+                {viewingForm.myUpdatedAt && viewingForm.myUpdatedAt !== viewingForm.mySubmittedAt && ` • Updated: ${format(new Date(viewingForm.myUpdatedAt), 'dd/MM/yyyy HH:mm')}`}
+              </span>
             </div>
 
             {viewingData && viewingData.length > 0 ? (
