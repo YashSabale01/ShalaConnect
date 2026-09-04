@@ -25,7 +25,7 @@ public interface EventImplementationRepository extends JpaRepository<EventImplem
     Optional<EventImplementation> findByIdWithPhotos(@Param("id") Long id);
 
     // Fetch all implementations for a school with photos
-    @Query("SELECT DISTINCT i FROM EventImplementation i LEFT JOIN FETCH i.event LEFT JOIN FETCH i.school LEFT JOIN FETCH i.submittedBy LEFT JOIN FETCH i.photoPaths WHERE i.school.id = :schoolId ORDER BY i.implementedAt DESC")
+    @Query("SELECT DISTINCT i FROM EventImplementation i LEFT JOIN FETCH i.event LEFT JOIN FETCH i.school LEFT JOIN FETCH i.submittedBy LEFT JOIN FETCH i.photoPaths WHERE i.school.id = :schoolId ORDER BY i.createdAt DESC")
     List<EventImplementation> findBySchoolIdWithPhotos(@Param("schoolId") Long schoolId);
 
     List<EventImplementation> findBySubmittedById(Long userId);

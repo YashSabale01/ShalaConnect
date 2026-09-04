@@ -9,7 +9,7 @@ FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 COPY --from=builder /app/target/*.jar app.jar
-RUN mkdir -p uploads && chown -R appuser:appgroup /app
+RUN mkdir -p uploads && chmod 777 uploads && chown -R appuser:appgroup /app
 USER appuser
 EXPOSE 8080
 ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "-jar", "app.jar"]
