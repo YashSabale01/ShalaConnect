@@ -25,3 +25,9 @@
     name: nginx
     state: restarted
   listen: "restart nginx"
+
+- name: Restart postgresql
+  ansible.builtin.systemd:
+    name: postgresql
+    state: restarted
+  listen: "restart postgresql"

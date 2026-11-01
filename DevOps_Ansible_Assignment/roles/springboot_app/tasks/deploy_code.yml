@@ -40,3 +40,13 @@
     mode: '0600'
   notify: restart springboot app
   tags: [deploy, config]
+
+- name: Deploy application-prod.properties for Spring Boot
+  ansible.builtin.template:
+    src: application-prod.properties.j2
+    dest: "{{ app_install_dir }}/application-prod.properties"
+    owner: "{{ app_user }}"
+    group: "{{ app_group }}"
+    mode: '0644'
+  notify: restart springboot app
+  tags: [deploy, config]
