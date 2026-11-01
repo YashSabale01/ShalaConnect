@@ -4,7 +4,7 @@
 # ==============================================================================
 
 - name: Deploy ShalaConnect Spring Boot Application and Configure Service
-  hosts: devops:app_servers:local_test
+  hosts: all
   become: true
   gather_facts: false
 

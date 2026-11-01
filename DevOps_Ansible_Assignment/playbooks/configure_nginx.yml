@@ -4,7 +4,7 @@
 # ==============================================================================
 
 - name: Setup Nginx Reverse Proxy for ShalaConnect Application
-  hosts: devops:webservers:local_test
+  hosts: all
   become: true
   gather_facts: false
 

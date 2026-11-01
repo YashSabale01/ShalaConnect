@@ -4,7 +4,7 @@
 # ==============================================================================
 
 - name: Post-Deployment Automated Validation & Sanity Suite (Spring Boot)
-  hosts: devops:webservers:app_servers:local_test
+  hosts: all
   become: false
   gather_facts: false
 
