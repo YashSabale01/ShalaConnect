@@ -1,0 +1,42 @@
+---
+# ==============================================================================
+# Standalone Playbook: Install System Prerequisites, OpenJDK 21, Maven & Nginx
+# ==============================================================================
+
+- name: Provision Prerequisites and Java 21 Runtimes
+  hosts: devops:webservers:app_servers:local_test
+  become: true
+  gather_facts: true
+
+  vars:
+    packages:
+      - openjdk-21-jdk
+      - maven
+      - curl
+      - git
+      - ufw
+      - ca-certificates
+      - gnupg
+      - postgresql-client
+      - nginx
+
+  tasks:
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Install required core utilities and OpenJDK 21
+      ansible.builtin.apt:
+        name: "{{ packages }}"
+        state: present
+
+    - name: Print Java version confirmation
+      ansible.builtin.command:
+        cmd: java -version
+      register: java_v
+      changed_when: false
+
+    - name: Output installed Java version
+      ansible.builtin.debug:
+        msg: "System installed Java version is: {{ java_v.stderr_lines[0] | default('Java 21 Ready') }}"

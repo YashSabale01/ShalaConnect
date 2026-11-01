@@ -1,0 +1,42 @@
+---
+# ==============================================================================
+# Tasks: Configure Systemd Service for Spring Boot Daemon
+# ==============================================================================
+
+- name: Deploy systemd service unit file for Spring Boot
+  ansible.builtin.template:
+    src: app.service.j2
+    dest: "/etc/systemd/system/{{ systemd_service_name }}.service"
+    owner: root
+    group: root
+    mode: '0644'
+  notify:
+    - reload systemd
+    - restart springboot app
+  tags: [service, systemd]
+
+- name: Flush handlers to reload systemd and trigger service start
+  ansible.builtin.meta: flush_handlers
+  tags: [service, systemd]
+
+- name: Ensure ShalaConnect Spring Boot service is enabled and started
+  ansible.builtin.systemd:
+    name: "{{ systemd_service_name }}"
+    enabled: true
+    state: started
+  tags: [service, systemd]
+
+- name: Check systemd service status
+  ansible.builtin.command:
+    cmd: "systemctl is-active {{ systemd_service_name }}"
+  register: service_status
+  changed_when: false
+  tags: [service, systemd]
+
+- name: Assert that Spring Boot service is actively running
+  ansible.builtin.assert:
+    that:
+      - "service_status.stdout == 'active'"
+    fail_msg: "The service {{ systemd_service_name }} is not active!"
+    success_msg: "The service {{ systemd_service_name }} is active and running under systemd."
+  tags: [service, systemd]

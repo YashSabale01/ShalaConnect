@@ -1,0 +1,19 @@
+---
+# ==============================================================================
+# Internal Variables for roles/springboot_app
+# ==============================================================================
+
+# OS Packages required for Java 21, build automation, PostgreSQL client, and Nginx
+required_system_packages:
+  - openjdk-21-jdk
+  - maven
+  - curl
+  - git
+  - ufw
+  - ca-certificates
+  - gnupg
+  - postgresql-client
+  - nginx
+
+# PostgreSQL Service dependency (if database runs on same host or remote RDS)
+postgresql_package: "postgresql"

@@ -1,0 +1,48 @@
+---
+# ==============================================================================
+# Default variables for roles/springboot_app (Java 21 / Spring Boot 3.2.3)
+# ShalaConnect Backend - School Management Platform
+# ==============================================================================
+
+# Application Meta
+app_name: "shalaconnect-backend"
+app_description: "ShalaConnect Java Spring Boot Backend Service"
+app_version: "1.0.0"
+app_jar_name: "shalaconnect-backend-1.0.0.jar"
+app_environment: "production"
+
+# Application User and Group
+app_user: "appuser"
+app_group: "appuser"
+create_app_user: true
+
+# Directory Paths
+app_install_dir: "/opt/shalaconnect-app"
+app_source_dir: "{{ playbook_dir }}/../application"
+app_log_dir: "/var/log/shalaconnect"
+
+# Network Configuration
+app_host: "0.0.0.0"
+app_port: 8080
+nginx_port: 80
+server_domain: "_"
+
+# Java Runtime Specification
+java_package_name: "openjdk-21-jdk"
+java_min_memory: "256m"
+java_max_memory: "512m"
+java_opts: "-Djava.security.egd=file:/dev/./urandom -XX:+UseG1GC"
+
+# Service & Daemon Settings
+systemd_service_name: "shalaconnect"
+restart_policy: "always"
+restart_sec: 5
+
+# Nginx Reverse Proxy Configuration
+enable_nginx_proxy: true
+nginx_client_max_body_size: "25M"
+
+# Health Check Verification
+health_check_endpoint: "http://127.0.0.1:{{ app_port }}/api/health"
+health_check_retries: 6
+health_check_delay: 5

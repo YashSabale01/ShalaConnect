@@ -1,0 +1,75 @@
+---
+# ==============================================================================
+# Tasks: Configure Nginx Reverse Proxy for Spring Boot (Port 80 -> 8080)
+# Supports: Debian/Ubuntu (/etc/nginx/sites-available) & Amazon Linux (/etc/nginx/conf.d)
+# ==============================================================================
+
+# Debian / Ubuntu Nginx Setup
+- name: Ensure sites-available and sites-enabled exist (Debian/Ubuntu)
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - /etc/nginx/sites-available
+    - /etc/nginx/sites-enabled
+  when: ansible_os_family == "Debian" and enable_nginx_proxy
+  tags: [nginx]
+
+- name: Deploy Nginx reverse proxy configuration (Debian/Ubuntu)
+  ansible.builtin.template:
+    src: nginx_site.conf.j2
+    dest: "/etc/nginx/sites-available/{{ app_name }}.conf"
+    owner: root
+    group: root
+    mode: '0644'
+  notify: reload nginx
+  when: ansible_os_family == "Debian" and enable_nginx_proxy
+  tags: [nginx]
+
+- name: Enable Nginx site configuration via symbolic link (Debian/Ubuntu)
+  ansible.builtin.file:
+    src: "/etc/nginx/sites-available/{{ app_name }}.conf"
+    dest: "/etc/nginx/sites-enabled/{{ app_name }}.conf"
+    state: link
+    force: true
+  notify: reload nginx
+  when: ansible_os_family == "Debian" and enable_nginx_proxy
+  tags: [nginx]
+
+- name: Remove default Nginx site configuration (Debian/Ubuntu)
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: reload nginx
+  when: ansible_os_family == "Debian" and enable_nginx_proxy
+  tags: [nginx]
+
+# Amazon Linux / RedHat Nginx Setup
+- name: Deploy Nginx reverse proxy configuration (Amazon Linux / RedHat)
+  ansible.builtin.template:
+    src: nginx_site.conf.j2
+    dest: "/etc/nginx/conf.d/{{ app_name }}.conf"
+    owner: root
+    group: root
+    mode: '0644'
+  notify: reload nginx
+  when: ansible_os_family == "RedHat" and enable_nginx_proxy
+  tags: [nginx]
+
+# Common Syntax & Service Verification
+- name: Test Nginx configuration syntax
+  ansible.builtin.command:
+    cmd: nginx -t
+  register: nginx_test_result
+  changed_when: false
+  when: enable_nginx_proxy
+  tags: [nginx]
+
+- name: Ensure Nginx service is enabled and started
+  ansible.builtin.systemd:
+    name: nginx
+    enabled: true
+    state: started
+  when: enable_nginx_proxy
+  tags: [nginx]

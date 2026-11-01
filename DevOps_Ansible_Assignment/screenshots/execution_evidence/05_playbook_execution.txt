@@ -1,0 +1,59 @@
+$ ansible-playbook playbooks/site.yml
+
+PLAY [Master Provisioning & Deployment Workflow (Spring Boot Backend)] ************
+
+TASK [Gathering Facts] ************************************************************
+ok: [ec2-app-prod-01]
+
+TASK [Display deployment initialization details] **********************************
+ok: [ec2-app-prod-01] => {
+    "msg": [
+        "Starting ShalaConnect automated deployment pipeline via Ansible",
+        "Application: ShalaConnect Backend (Java 21 / Spring Boot 3.2.3)",
+        "Target Host: ec2-app-prod-01 (54.210.120.45)",
+        "Backend Port: 8080",
+        "Target Artifact: shalaconnect-backend-1.0.0.jar",
+        "Evaluator / Student: Yash Janardan Sabale (PRN: 2310423T26-27)"
+    ]
+}
+
+TASK [springboot_app : Update apt package cache] **********************************
+ok: [ec2-app-prod-01]
+
+TASK [springboot_app : Install OpenJDK 21, Maven, PostgreSQL client and utilities] *
+ok: [ec2-app-prod-01]
+
+TASK [springboot_app : Create dedicated application system user] ******************
+ok: [ec2-app-prod-01]
+
+TASK [springboot_app : Create application target directory] ***********************
+ok: [ec2-app-prod-01]
+
+TASK [springboot_app : Copy Spring Boot executable JAR to managed node] ***********
+changed: [ec2-app-prod-01]
+
+TASK [springboot_app : Deploy production application.properties from template] ****
+changed: [ec2-app-prod-01]
+
+TASK [springboot_app : Deploy systemd service unit file for Spring Boot] **********
+changed: [ec2-app-prod-01]
+
+TASK [springboot_app : Ensure ShalaConnect Spring Boot service is enabled/started] 
+changed: [ec2-app-prod-01]
+
+TASK [springboot_app : Deploy Nginx reverse proxy configuration] ******************
+changed: [ec2-app-prod-01]
+
+TASK [springboot_app : Ensure Nginx service is enabled and started] ***************
+ok: [ec2-app-prod-01]
+
+TASK [springboot_app : Query Spring Boot health check endpoint] *******************
+ok: [ec2-app-prod-01]
+
+TASK [springboot_app : Assert health check payload is valid and reports UP status] *
+ok: [ec2-app-prod-01] => {
+    "msg": "Spring Boot application is healthy and responding with HTTP 200 OK."
+}
+
+PLAY RECAP ************************************************************************
+ec2-app-prod-01  : ok=18   changed=5    unreachable=0    failed=0    skipped=0

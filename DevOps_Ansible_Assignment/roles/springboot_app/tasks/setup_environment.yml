@@ -1,0 +1,66 @@
+---
+# ==============================================================================
+# Tasks: Setup System Environment, Dependencies, OpenJDK 21 & System User
+# Supports: Debian/Ubuntu (apt) and Amazon Linux 2023 / RedHat (dnf)
+# ==============================================================================
+
+# Debian / Ubuntu Systems
+- name: Update apt package cache
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+  when: ansible_os_family == "Debian"
+  tags: [setup, dependencies]
+
+- name: Install OpenJDK 21, Maven, PostgreSQL client and core utilities (Debian/Ubuntu)
+  ansible.builtin.apt:
+    name: "{{ required_system_packages }}"
+    state: present
+  when: ansible_os_family == "Debian"
+  tags: [setup, java, dependencies]
+
+# Amazon Linux / RedHat Systems
+- name: Install Java 21 (Corretto), Maven, Nginx and utilities (Amazon Linux / RedHat)
+  ansible.builtin.dnf:
+    name:
+      - java-21-amazon-corretto
+      - maven
+      - nginx
+      - git
+      - curl
+    state: present
+    update_cache: true
+  when: ansible_os_family == "RedHat"
+  tags: [setup, java, dependencies]
+
+- name: Verify installed Java version
+  ansible.builtin.command:
+    cmd: java -version
+  register: java_version_check
+  changed_when: false
+  tags: [setup, java]
+
+- name: Display verified Java runtime version
+  ansible.builtin.debug:
+    msg: "Java runtime verified on target: {{ java_version_check.stderr_lines[0] | default('Java installed') }}"
+  tags: [setup, java]
+
+- name: Create dedicated application group
+  ansible.builtin.group:
+    name: "{{ app_group }}"
+    state: present
+    system: true
+  when: create_app_user
+  tags: [setup, user]
+
+- name: Create dedicated application system user
+  ansible.builtin.user:
+    name: "{{ app_user }}"
+    group: "{{ app_group }}"
+    system: true
+    shell: /bin/bash
+    home: "{{ app_install_dir }}"
+    create_home: false
+    state: present
+  when: create_app_user
+  tags: [setup, user]

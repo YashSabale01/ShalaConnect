@@ -1,0 +1,26 @@
+---
+# ==============================================================================
+# Master Task Orchestration for roles/springboot_app
+# Student: Yash Janardan Sabale | PRN: 2310423T26-27 | MITAOE Pune
+# ==============================================================================
+
+- name: Include environment & OpenJDK 21 setup tasks
+  ansible.builtin.include_tasks: setup_environment.yml
+  tags: [setup, java, dependencies]
+
+- name: Include Spring Boot JAR deployment tasks
+  ansible.builtin.include_tasks: deploy_code.yml
+  tags: [deploy, app, config]
+
+- name: Include systemd service configuration tasks
+  ansible.builtin.include_tasks: configure_service.yml
+  tags: [service, systemd]
+
+- name: Include Nginx reverse proxy tasks (Port 80 -> 8080)
+  ansible.builtin.include_tasks: configure_nginx.yml
+  when: enable_nginx_proxy
+  tags: [nginx]
+
+- name: Include health verification tasks (/api/health)
+  ansible.builtin.include_tasks: verify_health.yml
+  tags: [verify, health]

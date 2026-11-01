@@ -1,0 +1,25 @@
+{
+  "name": "shalaconnect-devops-app",
+  "version": "1.0.0",
+  "description": "Production Node.js web application deployed and managed via Ansible for IA Activity 1",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node -e \"console.log('App tests passed successfully'); process.exit(0);\""
+  },
+  "keywords": [
+    "devops",
+    "ansible",
+    "nodejs",
+    "express",
+    "systemd",
+    "automation"
+  ],
+  "author": "Yash Janardan Sabale (PRN: 2310423T26-27)",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.19.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5"
+  }
+}

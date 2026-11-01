@@ -1,0 +1,37 @@
+---
+# ==============================================================================
+# Master Ansible Playbook: End-to-End DevOps Provisioning & Deployment
+# Project: ShalaConnect Java 21 / Spring Boot 3.2.3 Backend Web Application
+# Student: Yash Janardan Sabale | PRN: 2310423T26-27 | MITAOE Pune
+# ==============================================================================
+
+- name: Master Provisioning & Deployment Workflow (Spring Boot Backend)
+  hosts: devops:webservers:app_servers:local_test
+  become: true
+  gather_facts: true
+
+  pre_tasks:
+    - name: Display deployment initialization details
+      ansible.builtin.debug:
+        msg:
+          - "Starting ShalaConnect automated deployment pipeline via Ansible"
+          - "Application: ShalaConnect Backend (Java 21 / Spring Boot 3.2.3)"
+          - "Target Host: {{ inventory_hostname }} ({{ ansible_host | default('localhost') }})"
+          - "Operating System: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+          - "Backend Port: {{ app_port | default(8080) }}"
+          - "Target Artifact: {{ app_jar_name | default('shalaconnect-backend-1.0.0.jar') }}"
+          - "Evaluator / Student: Yash Janardan Sabale (PRN: 2310423T26-27)"
+
+    - name: Verify supported target operating system family
+      ansible.builtin.assert:
+        that:
+          - ansible_os_family == "Debian" or ansible_os_family == "RedHat" or ansible_connection == "local"
+        fail_msg: "Unsupported OS family: {{ ansible_os_family }}. This playbook supports Debian/Ubuntu and RedHat/CentOS."
+
+  roles:
+    - role: springboot_app
+
+  post_tasks:
+    - name: Confirm completion of end-to-end orchestration
+      ansible.builtin.debug:
+        msg: "✅ Successfully completed full configuration and Spring Boot deployment on {{ inventory_hostname }}."

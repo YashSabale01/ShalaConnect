@@ -1,0 +1,18 @@
+# ==============================================================================
+# Environment Configuration - ShalaConnect Spring Boot Backend
+# Generated via Ansible Template
+# ==============================================================================
+PORT={{ app_port }}
+SPRING_PROFILES_ACTIVE={{ app_environment }}
+APP_VERSION={{ app_version }}
+DEPLOYED_BY=Ansible Automation Framework (Student: Yash Janardan Sabale | MITAOE Pune)
+MANAGED_HOST={{ inventory_hostname }}
+DEPLOYMENT_TIMESTAMP={{ ansible_date_time.iso8601 if ansible_date_time is defined else '2026-11-01T11:40:00Z' }}
+
+# Database Environment (PostgreSQL)
+DB_URL=jdbc:postgresql://localhost:5432/school_management
+DB_USERNAME=postgres
+DB_PASSWORD=postgres
+DDL_AUTO=update
+JWT_SECRET=shalaconnect_super_secret_jwt_key_must_be_at_least_32_chars_long!!
+JWT_EXPIRATION=604800000

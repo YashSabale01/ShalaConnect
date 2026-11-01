@@ -1,0 +1,29 @@
+[Unit]
+Description={{ app_description }} (Managed by Ansible)
+Documentation=https://github.com/yashsabale/ShalaConnect
+After=network.target nginx.service postgresql.service
+Wants=network.target
+
+[Service]
+Type=simple
+User={{ app_user }}
+Group={{ app_group }}
+WorkingDirectory={{ app_install_dir }}
+EnvironmentFile={{ app_install_dir }}/.env
+ExecStart=/usr/bin/java -Xms{{ java_min_memory }} -Xmx{{ java_max_memory }} {{ java_opts }} -jar {{ app_install_dir }}/{{ app_jar_name }} --spring.config.additional-location=file:{{ app_install_dir }}/application-prod.properties
+Restart={{ restart_policy }}
+RestartSec={{ restart_sec }}
+
+# Security Hardening & Sandboxing
+ProtectSystem=full
+ProtectHome=true
+NoNewPrivileges=true
+PrivateTmp=true
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier={{ systemd_service_name }}
+
+[Install]
+WantedBy=multi-user.target

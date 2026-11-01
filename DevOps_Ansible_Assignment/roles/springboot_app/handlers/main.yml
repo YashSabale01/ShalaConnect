@@ -1,0 +1,27 @@
+---
+# ==============================================================================
+# Handlers for roles/springboot_app
+# ==============================================================================
+
+- name: Reload systemd daemon
+  ansible.builtin.systemd:
+    daemon_reload: true
+  listen: "reload systemd"
+
+- name: Restart springboot application
+  ansible.builtin.systemd:
+    name: "{{ systemd_service_name }}"
+    state: restarted
+  listen: "restart springboot app"
+
+- name: Reload nginx
+  ansible.builtin.systemd:
+    name: nginx
+    state: reloaded
+  listen: "reload nginx"
+
+- name: Restart nginx
+  ansible.builtin.systemd:
+    name: nginx
+    state: restarted
+  listen: "restart nginx"

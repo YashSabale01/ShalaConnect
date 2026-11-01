@@ -1,0 +1,61 @@
+---
+# ==============================================================================
+# Tasks: Verify Spring Boot Health Telemetry Endpoint (/api/health)
+# ==============================================================================
+
+- name: Wait for Spring Boot application port to open (port 8080)
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: "{{ app_port }}"
+    delay: 3
+    timeout: 60
+    state: started
+  tags: [verify, health]
+
+- name: Query Spring Boot health check endpoint
+  ansible.builtin.uri:
+    url: "{{ health_check_endpoint }}"
+    method: GET
+    status_code: 200
+    return_content: true
+  register: health_response
+  retries: "{{ health_check_retries }}"
+  delay: "{{ health_check_delay }}"
+  until: health_response.status == 200
+  tags: [verify, health]
+
+- name: Assert health check payload is valid and reports UP status
+  ansible.builtin.assert:
+    that:
+      - "health_response.status == 200"
+      - "'UP' in health_response.json.status"
+    fail_msg: "Spring Boot application health check failed or returned degraded status!"
+    success_msg: "Spring Boot application is healthy and responding with HTTP 200 OK."
+  tags: [verify, health]
+
+- name: Query Nginx reverse proxy endpoint (/api/health on port 80)
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ nginx_port }}/api/health"
+    method: GET
+    status_code: 200
+    return_content: true
+  register: nginx_response
+  when: enable_nginx_proxy
+  tags: [verify, health]
+
+- name: Print deployment summary and Spring Boot health telemetry
+  ansible.builtin.debug:
+    msg:
+      - "===================================================================="
+      - "🎉 SHALACONNECT SPRING BOOT DEPLOYMENT SUCCESSFUL!"
+      - "===================================================================="
+      - "Host: {{ inventory_hostname }}"
+      - "Service Status: {{ health_response.json.status }}"
+      - "Framework: Spring Boot 3.2.3 / OpenJDK 21"
+      - "Target Artifact: {{ app_jar_name }}"
+      - "Direct Endpoint: http://127.0.0.1:{{ app_port }}/api/health"
+      - "Public Nginx URL: http://{{ ansible_host | default('localhost') }}:{{ nginx_port }}/api/health"
+      - "Student: Yash Janardan Sabale (PRN: 2310423T26-27)"
+      - "Institution: MIT Academy of Engineering, Alandi, Pune"
+      - "===================================================================="
+  tags: [verify, health]

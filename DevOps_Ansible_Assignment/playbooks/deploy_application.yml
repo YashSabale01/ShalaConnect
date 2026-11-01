@@ -1,0 +1,66 @@
+---
+# ==============================================================================
+# Standalone Playbook: Deploy Spring Boot Executable JAR and Manage Service
+# ==============================================================================
+
+- name: Deploy ShalaConnect Spring Boot Application and Configure Service
+  hosts: devops:app_servers:local_test
+  become: true
+  gather_facts: false
+
+  vars:
+    app_install_dir: "/opt/shalaconnect-app"
+    app_source_dir: "{{ playbook_dir }}/../application"
+    app_jar_name: "shalaconnect-backend-1.0.0.jar"
+    app_user: "appuser"
+    app_group: "appuser"
+    app_port: 8080
+    systemd_service_name: "shalaconnect"
+
+  tasks:
+    - name: Create application directory
+      ansible.builtin.file:
+        path: "{{ app_install_dir }}"
+        state: directory
+        owner: "{{ app_user }}"
+        group: "{{ app_group }}"
+        mode: '0755'
+
+    - name: Copy Spring Boot executable JAR artifact
+      ansible.builtin.copy:
+        src: "{{ app_source_dir }}/{{ app_jar_name }}"
+        dest: "{{ app_install_dir }}/{{ app_jar_name }}"
+        owner: "{{ app_user }}"
+        group: "{{ app_group }}"
+        mode: '0755'
+
+    - name: Configure systemd unit file for Java daemon
+      ansible.builtin.copy:
+        dest: "/etc/systemd/system/{{ systemd_service_name }}.service"
+        mode: '0644'
+        content: |
+          [Unit]
+          Description=ShalaConnect Java Spring Boot Backend Service
+          After=network.target postgresql.service
+
+          [Service]
+          Type=simple
+          User={{ app_user }}
+          WorkingDirectory={{ app_install_dir }}
+          Environment=PORT={{ app_port }} SPRING_PROFILES_ACTIVE=production
+          ExecStart=/usr/bin/java -Xms256m -Xmx512m -jar {{ app_install_dir }}/{{ app_jar_name }}
+          Restart=always
+          RestartSec=5
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Reload systemd daemon
+      ansible.builtin.systemd:
+        daemon_reload: true
+
+    - name: Start and enable application service
+      ansible.builtin.systemd:
+        name: "{{ systemd_service_name }}"
+        state: restarted
+        enabled: true

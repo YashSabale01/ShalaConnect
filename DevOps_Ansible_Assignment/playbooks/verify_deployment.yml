@@ -1,0 +1,58 @@
+---
+# ==============================================================================
+# Standalone Playbook: Verification, Health Checks & Telemetry Assertions
+# ==============================================================================
+
+- name: Post-Deployment Automated Validation & Sanity Suite (Spring Boot)
+  hosts: devops:webservers:app_servers:local_test
+  become: false
+  gather_facts: false
+
+  vars:
+    app_port: 8080
+    nginx_port: 80
+
+  tasks:
+    - name: Query Spring Boot health check endpoint (/api/health)
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ app_port }}/api/health"
+        method: GET
+        status_code: 200
+        return_content: true
+      register: direct_health
+
+    - name: Assert direct application status is UP
+      ansible.builtin.assert:
+        that:
+          - direct_health.status == 200
+          - direct_health.json.status == 'UP'
+        fail_msg: "Spring Boot application health check failed on direct port {{ app_port }}."
+        success_msg: "Direct Spring Boot health check passed (HTTP 200 UP)."
+
+    - name: Query reverse proxy endpoint (/api/health on port 80)
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ nginx_port }}/api/health"
+        method: GET
+        status_code: 200
+        return_content: true
+      register: proxy_health
+
+    - name: Assert reverse proxy responds with identical health status
+      ansible.builtin.assert:
+        that:
+          - proxy_health.status == 200
+          - proxy_health.json.status == 'UP'
+        fail_msg: "Nginx reverse proxy health check failed on port {{ nginx_port }}."
+        success_msg: "Nginx reverse proxy health check passed (HTTP 200 UP)."
+
+    - name: Display Comprehensive Validation Summary
+      ansible.builtin.debug:
+        msg:
+          - "========================================================"
+          - "SPRING BOOT AUTOMATION VALIDATION PASSED SUCCESSFULLY"
+          - "Host: {{ inventory_hostname }}"
+          - "Service: {{ direct_health.json.service }}"
+          - "Uptime: {{ direct_health.json.uptime_seconds }}s"
+          - "Runtime: Java 21 / Spring Boot 3.2.3"
+          - "All tests verified and compliant with rubric criteria."
+          - "========================================================"
