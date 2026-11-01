@@ -1,0 +1,171 @@
+﻿
+PLAY [Master Provisioning & Deployment Workflow (Spring Boot Backend)] *********
+
+TASK [Gathering Facts] *********************************************************
+ok: [ec2-app-server]
+
+TASK [Display deployment initialization details] *******************************
+ok: [ec2-app-server] => 
+  msg:
+  - Starting ShalaConnect automated deployment pipeline via Ansible
+  - 'Application: ShalaConnect Backend (Java 21 / Spring Boot 3.2.3)'
+  - 'Target Host: ec2-app-server (13.126.181.31)'
+  - 'Operating System: Amazon 2023'
+  - 'Backend Port: 8080'
+  - 'Target Artifact: shalaconnect-backend-1.0.0.jar'
+  - 'Evaluator / Student: Yash Janardan Sabale (PRN: 2310423T26-27)'
+
+TASK [Verify supported target operating system family] *************************
+ok: [ec2-app-server] => changed=false 
+  msg: All assertions passed
+
+TASK [springboot_app : Include environment & OpenJDK 21 setup tasks] ***********
+included: /home/ec2-user/ShalaConnect/ShalaConnect/DevOps_Ansible_Assignment/roles/springboot_app/tasks/setup_environment.yml for ec2-app-server
+
+TASK [springboot_app : Update apt package cache] *******************************
+skipping: [ec2-app-server]
+
+TASK [springboot_app : Install OpenJDK 21, Maven, PostgreSQL client and core utilities (Debian/Ubuntu)] ***
+skipping: [ec2-app-server]
+
+TASK [springboot_app : Install Java 21 (Corretto), Maven, Nginx, PostgreSQL and utilities (Amazon Linux / RedHat)] ***
+ok: [ec2-app-server]
+
+TASK [springboot_app : Check if PostgreSQL database directory is initialized (Amazon Linux)] ***
+ok: [ec2-app-server]
+
+TASK [springboot_app : Initialize PostgreSQL database cluster if not initialized (Amazon Linux)] ***
+skipping: [ec2-app-server]
+
+TASK [springboot_app : Configure pg_hba.conf for local trust authentication] ***
+ok: [ec2-app-server]
+
+TASK [springboot_app : Ensure PostgreSQL service is enabled and started] *******
+ok: [ec2-app-server]
+
+TASK [springboot_app : Create PostgreSQL application database if not exists] ***
+ok: [ec2-app-server]
+
+TASK [springboot_app : Initialize school_management database] ******************
+skipping: [ec2-app-server]
+
+TASK [springboot_app : Set postgres user password] *****************************
+ok: [ec2-app-server]
+
+TASK [springboot_app : Verify installed Java version] **************************
+ok: [ec2-app-server]
+
+TASK [springboot_app : Display verified Java runtime version] ******************
+ok: [ec2-app-server] => 
+  msg: 'Java runtime verified on target: openjdk version "21.0.13" 2026-10-20 LTS'
+
+TASK [springboot_app : Create dedicated application group] *********************
+ok: [ec2-app-server]
+
+TASK [springboot_app : Create dedicated application system user] ***************
+ok: [ec2-app-server]
+
+TASK [springboot_app : Include Spring Boot JAR deployment tasks] ***************
+included: /home/ec2-user/ShalaConnect/ShalaConnect/DevOps_Ansible_Assignment/roles/springboot_app/tasks/deploy_code.yml for ec2-app-server
+
+TASK [springboot_app : Create application target directory] ********************
+ok: [ec2-app-server]
+
+TASK [springboot_app : Create application logging directory] *******************
+ok: [ec2-app-server]
+
+TASK [springboot_app : Copy Spring Boot executable JAR to managed node] ********
+ok: [ec2-app-server]
+
+TASK [springboot_app : Deploy production application.properties from template] ***
+changed: [ec2-app-server]
+
+TASK [springboot_app : Deploy application-prod.properties for Spring Boot] *****
+ok: [ec2-app-server]
+
+TASK [springboot_app : Include systemd service configuration tasks] ************
+included: /home/ec2-user/ShalaConnect/ShalaConnect/DevOps_Ansible_Assignment/roles/springboot_app/tasks/configure_service.yml for ec2-app-server
+
+TASK [springboot_app : Deploy systemd service unit file for Spring Boot] *******
+ok: [ec2-app-server]
+
+TASK [springboot_app : Flush handlers to reload systemd and trigger service start] ***
+
+RUNNING HANDLER [springboot_app : Restart springboot application] **************
+changed: [ec2-app-server]
+
+TASK [springboot_app : Ensure ShalaConnect Spring Boot service is enabled and started] ***
+ok: [ec2-app-server]
+
+TASK [springboot_app : Check systemd service status] ***************************
+ok: [ec2-app-server]
+
+TASK [springboot_app : Assert that Spring Boot service is actively running] ****
+ok: [ec2-app-server] => changed=false 
+  msg: The service shalaconnect is active and running under systemd.
+
+TASK [springboot_app : Include Nginx reverse proxy tasks (Port 80 -> 8080)] ****
+included: /home/ec2-user/ShalaConnect/ShalaConnect/DevOps_Ansible_Assignment/roles/springboot_app/tasks/configure_nginx.yml for ec2-app-server
+
+TASK [springboot_app : Ensure sites-available and sites-enabled exist (Debian/Ubuntu)] ***
+skipping: [ec2-app-server] => (item=/etc/nginx/sites-available) 
+skipping: [ec2-app-server] => (item=/etc/nginx/sites-enabled) 
+skipping: [ec2-app-server]
+
+TASK [springboot_app : Deploy Nginx reverse proxy configuration (Debian/Ubuntu)] ***
+skipping: [ec2-app-server]
+
+TASK [springboot_app : Enable Nginx site configuration via symbolic link (Debian/Ubuntu)] ***
+skipping: [ec2-app-server]
+
+TASK [springboot_app : Remove default Nginx site configuration (Debian/Ubuntu)] ***
+skipping: [ec2-app-server]
+
+TASK [springboot_app : Deploy Nginx reverse proxy configuration (Amazon Linux / RedHat)] ***
+ok: [ec2-app-server]
+
+TASK [springboot_app : Test Nginx configuration syntax] ************************
+ok: [ec2-app-server]
+
+TASK [springboot_app : Ensure Nginx service is enabled and started] ************
+ok: [ec2-app-server]
+
+TASK [springboot_app : Include health verification tasks (/api/health)] ********
+included: /home/ec2-user/ShalaConnect/ShalaConnect/DevOps_Ansible_Assignment/roles/springboot_app/tasks/verify_health.yml for ec2-app-server
+
+TASK [springboot_app : Wait for Spring Boot application port to open (port 8080)] ***
+ok: [ec2-app-server]
+
+TASK [springboot_app : Query Spring Boot health check endpoint] ****************
+ok: [ec2-app-server]
+
+TASK [springboot_app : Assert health check payload is valid and reports UP status] ***
+ok: [ec2-app-server] => changed=false 
+  msg: Spring Boot application is healthy and responding with HTTP 200 OK.
+
+TASK [springboot_app : Query Nginx reverse proxy endpoint (/api/health on port 80)] ***
+ok: [ec2-app-server]
+
+TASK [springboot_app : Print deployment summary and Spring Boot health telemetry] ***
+ok: [ec2-app-server] => 
+  msg:
+  - ====================================================================
+  - "\U0001F389 SHALACONNECT SPRING BOOT DEPLOYMENT SUCCESSFUL!"
+  - ====================================================================
+  - 'Host: ec2-app-server'
+  - 'Service Status: UP'
+  - 'Framework: Spring Boot 3.2.3 / OpenJDK 21'
+  - 'Target Artifact: shalaconnect-backend-1.0.0.jar'
+  - 'Direct Endpoint: http://127.0.0.1:8080/api/health'
+  - 'Public Nginx URL: http://13.126.181.31:80/api/health'
+  - 'Student: Yash Janardan Sabale (PRN: 2310423T26-27)'
+  - 'Institution: MIT Academy of Engineering, Alandi, Pune'
+  - ====================================================================
+
+TASK [Confirm completion of end-to-end orchestration] **************************
+ok: [ec2-app-server] => 
+  msg: ✅ Successfully completed full configuration and Spring Boot deployment on ec2-app-server.
+
+PLAY RECAP *********************************************************************
+ec2-app-server             : ok=37   changed=2    unreachable=0    failed=0    skipped=8    rescued=0    ignored=0   
+
