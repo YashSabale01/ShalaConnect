@@ -36,6 +36,22 @@ userdata.sh
 # Architecture files
 architecture.drawio
 
+# Binary build artifacts & archives
+*.jar
+*.war
+*.zip
+*.tar.gz
+
+# Reports, documents, and screenshots
+*.docx
+*.pdf
+screenshots/
+**/screenshots/
+execution_evidence/
+**/execution_evidence/
+test_*.png
+test_*.pdf
+
 # Logs
 *.log
 logs/

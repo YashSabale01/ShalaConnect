@@ -1,0 +1,19 @@
+# Binary build artifacts (build via 'mvn clean package')
+application/*.jar
+*.jar
+*.war
+
+# Unwanted binary documents & archives
+*.docx
+*.pdf
+*.zip
+
+# Screenshots & execution test logs
+screenshots/
+execution_evidence/
+*.log
+
+# Sensitive credentials & environment files
+*.pem
+.env
+.env.local
