@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: shalaconnect-config
+  namespace: shalaconnect
+  labels:
+    app.kubernetes.io/name: shalaconnect-backend
+    app.kubernetes.io/component: configuration
+data:
+  SPRING_PROFILES_ACTIVE: "prod"
+  SERVER_PORT: "8080"
+  DB_HOST: "postgres-service.shalaconnect.svc.cluster.local"
+  DB_PORT: "5432"
+  DB_NAME: "shalaconnect_production"
+  LOG_LEVEL: "INFO"
+  STUDENT_NAME: "Yash Janardan Sabale"
+  STUDENT_PRN: "2310423T26-27"
+  INSTITUTION: "MIT Academy of Engineering, Pune"
+  FEATURE_TELEMETRY_ENABLED: "true"
+  CACHE_TTL_SECONDS: "3600"

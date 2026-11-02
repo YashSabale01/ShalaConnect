@@ -1,0 +1,121 @@
+# ==============================================================================
+# Multi-Container Orchestration Specification (Docker Compose v3.8)
+# Project: ShalaConnect Cloud-Native Microservice Stack
+# Student: Yash Janardan Sabale | PRN: 2310423T26-27 | MITAOE Pune
+# ==============================================================================
+version: '3.8'
+
+services:
+  # Database Tier
+  postgres-db:
+    image: postgres:16-alpine
+    container_name: shalaconnect-k8s-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: shalaconnect_k8s
+      POSTGRES_USER: shala_admin
+      POSTGRES_PASSWORD: ShalaSecureK8sPassword2026!
+    ports:
+      - "5432:5432"
+    volumes:
+      - k8s_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shala_admin -d shalaconnect_k8s"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - shalaconnect-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  # Application Microservice Tier
+  shalaconnect-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: shalaconnect/backend:2.0.0
+    container_name: shalaconnect-k8s-app
+    restart: unless-stopped
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SERVER_PORT: 8080
+      DB_URL: jdbc:postgresql://postgres-db:5432/shalaconnect_k8s
+      DB_USERNAME: shala_admin
+      DB_PASSWORD: ShalaSecureK8sPassword2026!
+      APP_STUDENT_NAME: "Yash Janardan Sabale"
+      APP_PRN: "2310423T26-27"
+      APP_CLUSTER_NODE: "docker-standalone-worker-01"
+    ports:
+      - "8080:8080"
+    volumes:
+      - app_uploads:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    networks:
+      - shalaconnect-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 768M
+        reservations:
+          cpus: '0.5'
+          memory: 384M
+
+  # High-Availability Reverse Proxy / Edge Tier
+  nginx-edge:
+    image: nginx:1.27-alpine
+    container_name: shalaconnect-k8s-nginx
+    restart: unless-stopped
+    depends_on:
+      - shalaconnect-backend
+    ports:
+      - "80:80"
+    command: >
+      /bin/sh -c "cat << 'EOF' > /etc/nginx/conf.d/default.conf
+      server {
+          listen 80;
+          server_name localhost;
+
+          location / {
+              proxy_pass http://shalaconnect-backend:8080;
+              proxy_set_header Host \$$host;
+              proxy_set_header X-Real-IP \$$remote_addr;
+              proxy_set_header X-Forwarded-For \$$proxy_add_x_forwarded_for;
+              proxy_set_header X-Forwarded-Proto \$$scheme;
+          }
+
+          location /api/health {
+              proxy_pass http://shalaconnect-backend:8080/api/health;
+              access_log off;
+          }
+      }
+      EOF
+      nginx -g 'daemon off;'"
+    networks:
+      - shalaconnect-network
+
+networks:
+  shalaconnect-network:
+    driver: bridge
+    name: shalaconnect-k8s-net
+
+volumes:
+  k8s_postgres_data:
+    name: shalaconnect-k8s-postgres-volume
+  app_uploads:
+    name: shalaconnect-k8s-app-uploads

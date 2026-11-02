@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: shalaconnect
+  labels:
+    app.kubernetes.io/name: shalaconnect
+    app.kubernetes.io/part-of: shalaconnect-platform
+    environment: production
+    managed-by: kubernetes-devops
+    owner: yash-janardan-sabale

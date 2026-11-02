@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  jenkins-docker:
+    image: docker:dind
+    container_name: jenkins-docker
+    privileged: true
+    networks:
+      jenkins:
+        aliases:
+          - docker
+    environment:
+      - DOCKER_TLS_CERTDIR=/certs
+    volumes:
+      - jenkins-docker-certs:/certs/client
+      - jenkins-data:/var/jenkins_home
+    ports:
+      - "2376:2376"
+
+  jenkins-blueocean:
+    image: myjenkins-blueocean:2.440.1-1
+    build:
+      context: .
+      dockerfile: Dockerfile.jenkins
+    container_name: jenkins-blueocean
+    restart: on-failure
+    networks:
+      - jenkins
+    environment:
+      - DOCKER_HOST=tcp://docker:2376
+      - DOCKER_CERT_PATH=/certs/client
+      - DOCKER_TLS_VERIFY=1
+      - JAVA_OPTS=-Djenkins.install.runSetupWizard=false
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins-data:/var/jenkins_home
+      - jenkins-docker-certs:/certs/client:ro
+      - ./config/jenkins_casc.yaml:/var/jenkins_home/casc_configs/jenkins.yaml:ro
+    depends_on:
+      - jenkins-docker
+
+networks:
+  jenkins:
+    driver: bridge
+
+volumes:
+  jenkins-docker-certs:
+  jenkins-data:

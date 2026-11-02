@@ -1,0 +1,44 @@
+# ==============================================================================
+# Docker Build Context Exclusion Rules (.dockerignore)
+# Minimizes context transmission size and enhances security / reproducibility
+# ==============================================================================
+
+# Git metadata
+.git
+.gitignore
+.github
+
+# Build targets and temporary artifacts
+target/
+*.class
+*.jar
+*.war
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+
+# Operational logs & local state
+*.log
+logs/
+data/
+uploads/
+tmp/
+temp/
+
+# Infrastructure and local test files
+Dockerfile*
+docker-compose*.yml
+kubernetes/
+k8s/
+*.md
+*.pdf
+*.docx
+__pycache__/
+*.pyc
+.env
+.env.local
+.DS_Store
+Thumbs.db

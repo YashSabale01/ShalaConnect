@@ -1,0 +1,60 @@
+jenkins:
+  systemMessage: "ShalaConnect Enterprise Jenkins CI/CD Controller - Configured via JCasC for Yash Janardan Sabale (PRN: 2310423T26-27)"
+  numExecutors: 4
+  mode: NORMAL
+  scmCheckoutRetryCount: 3
+  securityRealm:
+    local:
+      allowsSignup: false
+      users:
+        - id: "admin"
+          password: "${JENKINS_ADMIN_PASSWORD:-admin12345}"
+  authorizationStrategy:
+    loggedInUsersCanDoAnything:
+      allowAnonymousRead: false
+
+tool:
+  git:
+    installations:
+      - name: "Default"
+        home: "/usr/bin/git"
+  jdk:
+    installations:
+      - name: "JDK-21"
+        home: "/opt/java/openjdk"
+  maven:
+    installations:
+      - name: "Maven-3.9.6"
+        home: "/usr/share/maven"
+  terraform:
+    installations:
+      - name: "Terraform-1.14"
+        home: "/usr/local/bin"
+
+unclassified:
+  location:
+    url: "http://localhost:8080/"
+    adminAddress: "yash.sabale@mitaoe.ac.in"
+
+jobs:
+  - script: >
+      pipelineJob('ShalaConnect-Core-Pipeline') {
+        description('End-to-End Multistage CI/CD Pipeline for ShalaConnect Spring Boot Application with Terraform Provisioning')
+        definition {
+          cpsScm {
+            scm {
+              git {
+                remote {
+                  url('https://github.com/YashSabale01/ShalaConnect.git')
+                  credentials('github-pat-yash')
+                }
+                branch('*/main')
+              }
+            }
+            scriptPath('Jenkinsfile')
+          }
+        }
+        triggers {
+          scm('H/5 * * * *')
+        }
+      }

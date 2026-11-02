@@ -1,0 +1,14 @@
+git:5.2.1
+workflow-aggregator:596.v8c21c963d92d
+pipeline-stage-view:2.34
+blueocean:1.27.12
+docker-workflow:572.v950fa_314189b_
+terraform:1.0.10
+credentials-binding:681.vf91669a_32fb_4
+timestamper:1.26
+ansicolor:1.0.4
+junit:1265.ge6f5128d571f
+ws-cleanup:0.45
+configuration-as-code:1775.v810dc950b_514
+slack:684.v1267240f7916
+sonar:2.16.1

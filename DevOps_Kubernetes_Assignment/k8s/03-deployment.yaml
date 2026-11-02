@@ -1,0 +1,167 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shalaconnect-backend
+  namespace: shalaconnect
+  labels:
+    app: shalaconnect-backend
+    app.kubernetes.io/name: shalaconnect-backend
+    app.kubernetes.io/part-of: shalaconnect-platform
+    app.kubernetes.io/version: "2.0.0"
+    app.kubernetes.io/managed-by: kubernetes
+    environment: production
+spec:
+  # High-Availability Pod Replica Pool
+  replicas: 3
+  
+  # Zero-Downtime Rolling Update Deployment Strategy
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1        # Allows 1 pod above desired count during updates (33%)
+      maxUnavailable: 0  # Guarantees 100% capacity availability at all times
+
+  selector:
+    matchLabels:
+      app: shalaconnect-backend
+
+  template:
+    metadata:
+      labels:
+        app: shalaconnect-backend
+        tier: backend
+        environment: production
+        version: "2.0.0"
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/api/metrics"
+        prometheus.io/port: "8080"
+    spec:
+      # Pod-Level Security Context (Hardened Security Standard)
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+
+      containers:
+        - name: shalaconnect-microservice
+          image: shalaconnect/backend:2.0.0
+          imagePullPolicy: IfNotPresent
+
+          # Container Security Context
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+
+          # Container Port Declaration
+          ports:
+            - containerPort: 8080
+              name: http-api
+              protocol: TCP
+
+          # Environmental Variable Injections (ConfigMap, Secret & Downward API)
+          env:
+            # Downward API for Pod Identity
+            - name: HOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+
+            # ConfigMap References
+            - name: SPRING_PROFILES_ACTIVE
+              valueFrom:
+                configMapKeyRef:
+                  name: shalaconnect-config
+                  key: SPRING_PROFILES_ACTIVE
+            - name: SERVER_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: shalaconnect-config
+                  key: SERVER_PORT
+            - name: DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: shalaconnect-config
+                  key: DB_HOST
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: shalaconnect-config
+                  key: LOG_LEVEL
+
+            # Secret References
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: shalaconnect-secret
+                  key: DB_USERNAME
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: shalaconnect-secret
+                  key: DB_PASSWORD
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: shalaconnect-secret
+                  key: JWT_SECRET
+
+          # Resource Constraints (Requests and Limits)
+          resources:
+            requests:
+              cpu: "250m"       # 0.25 vCPU cores guaranteed
+              memory: "256Mi"   # 256 MiB RAM guaranteed
+            limits:
+              cpu: "1000m"      # Throttled at 1.0 vCPU core
+              memory: "512Mi"   # Strict ceiling to prevent host node starvation
+
+          # Liveness Probe (Restarts Pod if unhealthy / deadlock detected)
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+            successThreshold: 1
+
+          # Readiness Probe (Gates traffic until container is ready to accept queries)
+          readinessProbe:
+            httpGet:
+              path: /api/ready
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 2
+            successThreshold: 1
+
+          # Startup Probe (Protects slower JVM container cold starts)
+          startupProbe:
+            httpGet:
+              path: /api/health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 12

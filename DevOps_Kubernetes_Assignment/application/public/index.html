@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShalaConnect Cloud-Native Pod Dashboard | Kubernetes Deployment</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>☸️</text></svg>">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Top Navigation Bar -->
+        <header class="navbar">
+            <div class="brand">
+                <span class="brand-icon">☸️</span>
+                <div>
+                    <h1 class="brand-title">ShalaConnect Cloud-Native Microservice</h1>
+                    <p class="brand-sub">Kubernetes Production Pod Telemetry &amp; Service Mesh</p>
+                </div>
+            </div>
+            <div class="user-badge">
+                <span class="live-indicator"></span>
+                <span>POD STATUS: <strong>HEALTHY (200 OK)</strong></span>
+            </div>
+        </header>
+
+        <!-- Student Submission Banner -->
+        <section class="banner">
+            <div class="banner-grid">
+                <div>
+                    <span class="label">Course Activity</span>
+                    <strong>IA Activity No. 2: Containerization &amp; Kubernetes Deployment</strong>
+                </div>
+                <div>
+                    <span class="label">Student Name</span>
+                    <strong>Yash Janardan Sabale</strong>
+                </div>
+                <div>
+                    <span class="label">Permanent Reg. No (PRN)</span>
+                    <strong>2310423T26-27</strong>
+                </div>
+                <div>
+                    <span class="label">Institution</span>
+                    <strong>MIT Academy of Engineering, Pune</strong>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Dashboard Content -->
+        <main class="grid-layout">
+            <!-- Card 1: Pod Architecture & Identity -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>📌 Kubernetes Pod Identity</h3>
+                    <span class="tag tag-blue">OCI Runtime</span>
+                </div>
+                <div class="card-body">
+                    <div class="spec-row">
+                        <span class="spec-label">Pod Name:</span>
+                        <code class="spec-val" id="podNameDisplay">{{POD_NAME}}</code>
+                    </div>
+                    <div class="spec-row">
+                        <span class="spec-label">Assigned Node:</span>
+                        <code class="spec-val" id="nodeNameDisplay">{{NODE_NAME}}</code>
+                    </div>
+                    <div class="spec-row">
+                        <span class="spec-label">Namespace:</span>
+                        <span class="badge-pill" id="namespaceDisplay">{{NAMESPACE}}</span>
+                    </div>
+                    <div class="spec-row">
+                        <span class="spec-label">Service Selector:</span>
+                        <code>app=shalaconnect-backend</code>
+                    </div>
+                    <div class="spec-row">
+                        <span class="spec-label">Container Image:</span>
+                        <code>shalaconnect/backend:2.0.0</code>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 2: Live Cluster Telemetry -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>📊 Live Runtime Telemetry</h3>
+                    <span class="tag tag-green">Auto-refresh (3s)</span>
+                </div>
+                <div class="card-body stat-grid">
+                    <div class="stat-box">
+                        <span class="stat-number" id="uptimeDisplay">0s</span>
+                        <span class="stat-desc">Container Uptime</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-number" id="heapDisplay">0 MB</span>
+                        <span class="stat-desc">JVM Heap Used</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-number" id="requestsDisplay">0</span>
+                        <span class="stat-desc">Requests Handled</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-number" id="threadsDisplay">--</span>
+                        <span class="stat-desc">Virtual Threads</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 3: Kubernetes Probes & QoS -->
+            <div class="card full-span">
+                <div class="card-header">
+                    <h3>🛡️ Kubernetes Reliability &amp; Probe Status</h3>
+                    <span class="tag tag-purple">Self-Healing Enabled</span>
+                </div>
+                <div class="card-body">
+                    <div class="probes-grid">
+                        <div class="probe-item">
+                            <div class="probe-status active">✓</div>
+                            <div>
+                                <strong>Liveness Probe (/api/health)</strong>
+                                <p>HTTP GET :8080/api/health | initialDelay: 15s | period: 10s</p>
+                            </div>
+                        </div>
+                        <div class="probe-item">
+                            <div class="probe-status active">✓</div>
+                            <div>
+                                <strong>Readiness Probe (/api/ready)</strong>
+                                <p>HTTP GET :8080/api/ready | initialDelay: 5s | period: 5s</p>
+                            </div>
+                        </div>
+                        <div class="probe-item">
+                            <div class="probe-status active">✓</div>
+                            <div>
+                                <strong>Resource Constraints (QoS: Burstable)</strong>
+                                <p>Requests: 250m CPU, 256Mi | Limits: 1000m CPU, 512Mi</p>
+                            </div>
+                        </div>
+                        <div class="probe-item">
+                            <div class="probe-status active">✓</div>
+                            <div>
+                                <strong>RollingUpdate Strategy</strong>
+                                <p>maxSurge: 25% | maxUnavailable: 0 (Zero Downtime)</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 4: Exposed Endpoints Test Matrix -->
+            <div class="card full-span">
+                <div class="card-header">
+                    <h3>🚀 Microservice REST API Endpoints</h3>
+                    <span class="tag tag-gray">Interactive Links</span>
+                </div>
+                <div class="card-body">
+                    <table class="endpoint-table">
+                        <thead>
+                            <tr>
+                                <th>Method</th>
+                                <th>Endpoint Route</th>
+                                <th>Purpose in Cloud Architecture</th>
+                                <th>Format</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><span class="method-get">GET</span></td>
+                                <td><code>/api/health</code></td>
+                                <td>Kubernetes Liveness Probe &amp; Health State</td>
+                                <td>JSON</td>
+                                <td><a href="/api/health" target="_blank" class="btn-sm">Test Endpoint</a></td>
+                            </tr>
+                            <tr>
+                                <td><span class="method-get">GET</span></td>
+                                <td><code>/api/ready</code></td>
+                                <td>Kubernetes Readiness Probe &amp; Traffic Gate</td>
+                                <td>JSON</td>
+                                <td><a href="/api/ready" target="_blank" class="btn-sm">Test Endpoint</a></td>
+                            </tr>
+                            <tr>
+                                <td><span class="method-get">GET</span></td>
+                                <td><code>/api/info</code></td>
+                                <td>Academic Metadata &amp; Pod Environmental Spec</td>
+                                <td>JSON</td>
+                                <td><a href="/api/info" target="_blank" class="btn-sm">Test Endpoint</a></td>
+                            </tr>
+                            <tr>
+                                <td><span class="method-get">GET</span></td>
+                                <td><code>/api/metrics</code></td>
+                                <td>Prometheus-Style JVM Memory &amp; CPU Metrics</td>
+                                <td>JSON</td>
+                                <td><a href="/api/metrics" target="_blank" class="btn-sm">Test Endpoint</a></td>
+                            </tr>
+                            <tr>
+                                <td><span class="method-get">GET</span></td>
+                                <td><code>/api/students</code></td>
+                                <td>Educational Domain REST Resource</td>
+                                <td>JSON</td>
+                                <td><a href="/api/students" target="_blank" class="btn-sm">Test Endpoint</a></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <p><strong>MITAOE Department of Computer Engineering</strong> | Academic Submission Package for IA Activity 2</p>
+            <p>Automated Containerization &amp; Kubernetes Deployment Challenge | Student: <strong>Yash Janardan Sabale</strong> (PRN: <strong>2310423T26-27</strong>)</p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
