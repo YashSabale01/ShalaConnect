@@ -1,7 +1,7 @@
 # ==============================================================================
 # Multi-Container Orchestration Specification (Docker Compose v3.8)
 # Project: ShalaConnect Cloud-Native Microservice Stack
-# Student: Yash Janardan Sabale | PRN: 2310423T26-27 | MITAOE Pune
+# Student: Yash Janardan Sabale | PRN: 202301040087 | MITAOE Pune
 # ==============================================================================
 version: '3.8'
 
@@ -53,7 +53,7 @@ services:
       DB_USERNAME: shala_admin
       DB_PASSWORD: ShalaSecureK8sPassword2026!
       APP_STUDENT_NAME: "Yash Janardan Sabale"
-      APP_PRN: "2310423T26-27"
+      APP_PRN: "202301040087"
       APP_CLUSTER_NODE: "docker-standalone-worker-01"
     ports:
       - "8080:8080"

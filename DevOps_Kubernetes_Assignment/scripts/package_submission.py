@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
 Create Submission Zip Package for DevOps IA Activity No. 2
-Student: Yash Janardan Sabale | PRN: 2310423T26-27 | MITAOE Pune
-Output: DevOps_IA2_Submission_Yash_Janardan_Sabale_2310423T26-27.zip
+Student: Yash Janardan Sabale | PRN: 202301040087 | MITAOE Pune
+Output: DevOps_IA2_Submission_Yash_Janardan_Sabale_202301040087.zip
 """
 
 import os
@@ -11,7 +11,7 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 ROOT_DIR = BASE_DIR.parent
-ZIP_NAME = "DevOps_IA2_Submission_Yash_Janardan_Sabale_2310423T26-27.zip"
+ZIP_NAME = "DevOps_IA2_Submission_Yash_Janardan_Sabale_202301040087.zip"
 ZIP_OUTPUT = ROOT_DIR / ZIP_NAME
 
 EXCLUDE_PATTERNS = [

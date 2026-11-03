@@ -14,7 +14,7 @@ This timed script is designed for recording an online video demonstration explai
 ### [00:00 – 00:45] Slide 1: Introduction & Assignment Scope
 - **Visual Display:** Title slide displaying Student Name (Yash Janardan Sabale), PRN (2310423T26-27), MIT Academy of Engineering, IA Activity No. 2, and Architecture Overview.
 - **Narrator (Speaking):**
-  > *"Respected evaluators and peers, greetings. My name is Yash Janardan Sabale, PRN 2310423T26-27, Third Year Computer Engineering at MIT Academy of Engineering, Pune. Today, I am demonstrating my submission for IA Activity No. 2: the Containerization and Kubernetes Deployment Challenge.
+  > *"Respected evaluators and peers, greetings. My name is Yash Janardan Sabale, PRN 202301040087, Third Year Computer Engineering at MIT Academy of Engineering, Pune. Today, I am demonstrating my submission for IA Activity No. 2: the Containerization and Kubernetes Deployment Challenge.
   > In this project, I have containerized our educational platform backend, ShalaConnect, developed with Java 21 and Spring Boot 3.2.3, using an optimized multi-stage Docker build. I then deployed it onto a multi-node Kubernetes cluster using declarative manifests with high availability, health probes, rolling updates, and autoscaling. Let us walk through the practical implementation."*
 
 ---

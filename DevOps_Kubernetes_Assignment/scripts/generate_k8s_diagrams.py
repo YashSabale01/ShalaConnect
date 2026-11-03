@@ -2,7 +2,7 @@
 """
 High-Resolution Professional Kubernetes & Docker Architecture Diagram Generator
 Course: DevOps & Cloud Engineering (IA Activity 2)
-Student: Yash Janardan Sabale | PRN: 2310423T26-27 | MITAOE Pune
+Student: Yash Janardan Sabale | PRN: 202301040087 | MITAOE Pune
 Outputs 300 DPI Publication-Grade PNG Diagrams:
  1. diagrams/docker_multistage_architecture.png
  2. diagrams/kubernetes_cluster_architecture.png

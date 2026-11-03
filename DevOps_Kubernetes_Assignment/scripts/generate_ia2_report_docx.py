@@ -3,7 +3,7 @@
 Master Academic DOCX Report Generator for DevOps IA Activity No. 2
 Topic: Containerization & Kubernetes Deployment Challenge
 Target: ShalaConnect Cloud-Native Microservice (Java 21 / Spring Boot 3.2.3)
-Student: Yash Janardan Sabale | PRN: 2310423T26-27 | MITAOE Pune
+Student: Yash Janardan Sabale | PRN: 202301040087 | MITAOE Pune
 """
 
 import os
@@ -65,7 +65,7 @@ def generate_docx():
     table_meta.alignment = docx.enum.table.WD_TABLE_ALIGNMENT.CENTER
     meta_rows = [
         ("Student Name", "Yash Janardan Sabale"),
-        ("Permanent Reg. No (PRN)", "2310423T26-27"),
+        ("Permanent Reg. No (PRN)", "202301040087"),
         ("Branch & Class", "Third Year B.Tech – Computer Engineering"),
         ("Course / Activity", "DevOps & Cloud Engineering – IA Activity No. 2 (Course: 6690, Section: 59586, Activity: 63642)"),
         ("Target Application", "ShalaConnect Cloud-Native Microservice (Java 21 / Spring Boot 3.2.3)"),

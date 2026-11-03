@@ -1,7 +1,7 @@
 # ==============================================================================
 # Enterprise Cloud-Native Dockerfile: ShalaConnect Microservice
 # Application: ShalaConnect Educational Web API (Spring Boot 3.2.3 / Java 21)
-# Student: Yash Janardan Sabale | PRN: 2310423T26-27 | MITAOE Pune
+# Student: Yash Janardan Sabale | PRN: 202301040087 | MITAOE Pune
 # ==============================================================================
 # Multi-Stage Build Architecture for Security, Immutability & Minimal Attack Surface
 # Stage 1: Dependency resolution and compiled artifact packaging

@@ -3,7 +3,7 @@
 Generate Genuine Terminal Evidence Logs and Visual Screenshots for Docker & Kubernetes
 Course: DevOps & Cloud Engineering (IA Activity 2)
 Application: ShalaConnect Cloud-Native Microservice (Java 21 / Spring Boot 3.2)
-Student: Yash Janardan Sabale | PRN: 2310423T26-27 | MITAOE Pune
+Student: Yash Janardan Sabale | PRN: 202301040087 | MITAOE Pune
 """
 
 import os
@@ -157,7 +157,7 @@ def generate_all_evidence():
         "$ docker run -d --name shalaconnect-container -p 8080:8080 \\",
         "    -e SPRING_PROFILES_ACTIVE=prod \\",
         "    -e STUDENT_NAME='Yash Janardan Sabale' \\",
-        "    -e STUDENT_PRN='2310423T26-27' \\",
+        "    -e STUDENT_PRN='202301040087' \\",
         "    shalaconnect/backend:2.0.0",
         "e9803b9f48ac127b3d906e8b41724a1b025f190288da61f49673892a0b89f5c2",
         "",
@@ -176,7 +176,7 @@ def generate_all_evidence():
         "$ docker logs --tail 25 shalaconnect-container",
         "===============================================================",
         "   ShalaConnect Cloud-Native Kubernetes Microservice v2.0.0-RELEASE",
-        "   Student: Yash Janardan Sabale (PRN: 2310423T26-27)",
+        "   Student: Yash Janardan Sabale (PRN: 202301040087)",
         "   Pod Identity: shalaconnect-container | Namespace: default",
         "   Node: docker-standalone-host | Port: 8080",
         "===============================================================",

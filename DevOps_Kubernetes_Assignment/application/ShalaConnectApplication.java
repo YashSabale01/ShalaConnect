@@ -23,8 +23,7 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * ==============================================================================
  * ShalaConnect Cloud-Native Microservice & Kubernetes Demonstration Server
- * Course: DevOps & Cloud Engineering (IA Activity 2)
- * Student: Yash Janardan Sabale | PRN: 2310423T26-27 | MITAOE Pune
+ * Student: Yash Janardan Sabale | PRN: 202301040087 | MITAOE Pune
  * ==============================================================================
  * Features:
  * 1. Low-footprint, cloud-native Java 21 HTTP microservice.
@@ -37,12 +36,17 @@ public class ShalaConnectApplication {
 
     private static final String APP_VERSION = "2.0.0-RELEASE";
     private static final String STUDENT_NAME = "Yash Janardan Sabale";
-    private static final String STUDENT_PRN = "2310423T26-27";
+    private static final String STUDENT_PRN = "202301040087";
     private static final Instant START_TIME = Instant.now();
     private static final AtomicLong REQUEST_COUNTER = new AtomicLong(0);
 
     public static void main(String[] args) throws IOException {
         int port = 8080;
+        if (args.length > 0) {
+            try {
+                port = Integer.parseInt(args[0].trim());
+            } catch (NumberFormatException ignored) {}
+        }
         String portEnv = System.getenv("SERVER_PORT");
         if (portEnv != null && !portEnv.isBlank()) {
             try {
@@ -73,10 +77,10 @@ public class ShalaConnectApplication {
         server.setExecutor(Executors.newVirtualThreadPerTaskExecutor());
         server.start();
 
-        System.out.println("[INFO] Microservice successfully initialized on http://0.0.0.0:" + port);
-        System.out.println("[INFO] Kubernetes Liveness Probe active at:  GET http://0.0.0.0:" + port + "/api/health");
-        System.out.println("[INFO] Kubernetes Readiness Probe active at: GET http://0.0.0.0:" + port + "/api/ready");
-        System.out.println("[INFO] Cloud-Native UI Dashboard active at:  GET http://0.0.0.0:" + port + "/");
+        System.out.println("[INFO] Microservice successfully initialized on http://localhost:" + port);
+        System.out.println("[INFO] Kubernetes Liveness Probe active at:  GET http://localhost:" + port + "/api/health");
+        System.out.println("[INFO] Kubernetes Readiness Probe active at: GET http://localhost:" + port + "/api/ready");
+        System.out.println("[INFO] Cloud-Native UI Dashboard active at:  GET http://localhost:" + port + "/");
     }
 
     private static class HealthHandler implements HttpHandler {
@@ -177,7 +181,6 @@ public class ShalaConnectApplication {
                 "  \"studentMetadata\": {\n" +
                 "    \"name\": \"%s\",\n" +
                 "    \"prn\": \"%s\",\n" +
-                "    \"course\": \"DevOps & Cloud Engineering (2310423T26-27)\",\n" +
                 "    \"college\": \"MIT Academy of Engineering, Alandi, Pune\"\n" +
                 "  }\n" +
                 "}",

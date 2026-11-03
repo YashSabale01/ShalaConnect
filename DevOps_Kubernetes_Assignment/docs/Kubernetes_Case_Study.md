@@ -96,7 +96,7 @@ The target application is the **ShalaConnect Educational Web API**, engineered t
 - **Core Endpoints:**
   - `GET /api/health`: Provides JSON liveness status, container uptime, JVM heap memory utilization, and total processed requests.
   - `GET /api/ready`: Returns HTTP 200 once internal dependencies (database pools, caches) are connected and ready to accept live queries.
-  - `GET /api/info`: Outputs student metadata (Yash Janardan Sabale, PRN: 2310423T26-27), pod name, namespace, and host node.
+  - `GET /api/info`: Outputs student metadata (Yash Janardan Sabale, PRN: 202301040087), pod name, namespace, and host node.
   - `GET /api/metrics`: Exposes JVM heap, non-heap, thread count, and CPU load metrics for Prometheus scraping.
   - `GET /api/students`: REST resource returning student academic records.
   - `GET /`: Serves an interactive, responsive real-time Web Dashboard.
@@ -177,7 +177,7 @@ docker run -d \
   -p 8080:8080 \
   -e SPRING_PROFILES_ACTIVE=prod \
   -e STUDENT_NAME="Yash Janardan Sabale" \
-  -e STUDENT_PRN="2310423T26-27" \
+  -e STUDENT_PRN="202301040087" \
   shalaconnect/backend:2.0.0
 ```
 

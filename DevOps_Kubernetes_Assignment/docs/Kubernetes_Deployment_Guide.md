@@ -51,7 +51,7 @@ docker run -d \
   -p 8080:8080 \
   -e SPRING_PROFILES_ACTIVE=prod \
   -e STUDENT_NAME="Yash Janardan Sabale" \
-  -e STUDENT_PRN="2310423T26-27" \
+  -e STUDENT_PRN="202301040087" \
   shalaconnect/backend:2.0.0
 ```
 

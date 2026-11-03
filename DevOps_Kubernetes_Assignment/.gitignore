@@ -1,0 +1,12 @@
+# Git ignore for Kubernetes Assignment
+target/
+*.class
+*.jar
+*.war
+*.pyc
+__pycache__/
+.DS_Store
+Thumbs.db
+*.log
+*.zip
+com/

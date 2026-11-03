@@ -14,7 +14,7 @@ data:
   DB_NAME: "shalaconnect_production"
   LOG_LEVEL: "INFO"
   STUDENT_NAME: "Yash Janardan Sabale"
-  STUDENT_PRN: "2310423T26-27"
+  STUDENT_PRN: "202301040087"
   INSTITUTION: "MIT Academy of Engineering, Pune"
   FEATURE_TELEMETRY_ENABLED: "true"
   CACHE_TTL_SECONDS: "3600"

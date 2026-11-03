@@ -1,6 +1,6 @@
 // ==============================================================================
 // ShalaConnect Telemetry Poller & Real-time Metrics Client
-// Author: Yash Janardan Sabale | PRN: 2310423T26-27 | MITAOE Pune
+// Author: Yash Janardan Sabale | PRN: 202301040087 | MITAOE Pune
 // ==============================================================================
 
 async function fetchTelemetry() {

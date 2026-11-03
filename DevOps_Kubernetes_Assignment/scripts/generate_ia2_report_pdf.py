@@ -3,7 +3,7 @@
 Publication-Grade Academic PDF Report Generator for DevOps IA Activity No. 2
 Topic: Containerization & Kubernetes Deployment Challenge
 Target Application: ShalaConnect Cloud-Native Microservice (Java 21 / Spring Boot 3.2.3)
-Student: Yash Janardan Sabale | PRN: 2310423T26-27 | MITAOE Pune
+Student: Yash Janardan Sabale | PRN: 202301040087 | MITAOE Pune
 Outputs: DevOps_Kubernetes_Assignment/DevOps_IA2_Containerization_Kubernetes_Report_Yash_Sabale.pdf
 """
 
@@ -151,7 +151,7 @@ def generate_pdf():
     # Student Metadata Table
     meta_table_data = [
         [Paragraph("Student Name", style_table_cell_bold), Paragraph("Yash Janardan Sabale", style_table_cell)],
-        [Paragraph("Permanent Reg. No (PRN)", style_table_cell_bold), Paragraph("2310423T26-27", style_table_cell)],
+        [Paragraph("Permanent Reg. No (PRN)", style_table_cell_bold), Paragraph("202301040087", style_table_cell)],
         [Paragraph("Branch & Class", style_table_cell_bold), Paragraph("Third Year B.Tech – Computer Engineering", style_table_cell)],
         [Paragraph("Course / Activity", style_table_cell_bold), Paragraph("DevOps & Cloud Engineering – IA Activity No. 2 (Course: 6690, Activity: 63642)", style_table_cell)],
         [Paragraph("Target Microservice", style_table_cell_bold), Paragraph("ShalaConnect Educational Platform (Java 21 / Spring Boot 3.2.3 REST API)", style_table_cell)],
