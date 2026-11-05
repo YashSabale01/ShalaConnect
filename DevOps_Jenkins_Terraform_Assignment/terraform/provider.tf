@@ -17,7 +17,7 @@ provider "aws" {
       Project     = var.project_name
       Environment = var.environment
       ManagedBy   = "Terraform"
-      Author      = "Yash Sabale (PRN: 2310423T26-27)"
+      Author      = "Yash Sabale (PRN: 202301040087)"
     }
   }
 }

@@ -9,35 +9,50 @@
 
 ### Student Information
 - **Student Name:** Yash Janardan Sabale
-- **PRN:** 2310423T26-27
-- **Moodle Activity:** IA Activity No. 3 (Course: 6690, Section: 59586, Activity: 63643)
+- **PRN:** 202301040087
+- **Course Name:** DevOps & Cloud Engineering (Course ID: 6690)
 - **Target Application:** ShalaConnect (Spring Boot 3.2 / Java 21 Cloud-Native Microservice & React Frontend)
-- **Status:** Complete Practical Implementation & Submission Package
 
 ---
 
 ## 📌 Executive Summary
 
-This project implements an enterprise-grade Continuous Integration / Continuous Deployment (CI/CD) and Infrastructure as Code (IaC) automation suite for the **ShalaConnect** educational platform.
+This project implements an enterprise-grade Continuous Integration / Continuous Deployment (CI/CD) and Infrastructure as Code (IaC) automation architecture for the **ShalaConnect** educational platform.
 
-Using **Jenkins** (Declarative Pipeline) and **HashiCorp Terraform**, the project achieves:
-1. **Automated Source Code Integration:** SCM polling and GitHub webhook integration triggering builds upon code commit.
-2. **Comprehensive Build & Quality Gates:** Maven compilation, Checkstyle/SpotBugs static code analysis, and automated JUnit 5 test execution (48 test cases, 100% pass rate).
-3. **Containerization & DevSecOps:** Multi-stage Docker container build tagged with commit SHAs and scanned for CVEs using **Trivy**.
-4. **Modular Infrastructure Provisioning:** Reusable, structured Terraform configuration provisioning a dual-AZ AWS VPC, layered Security Groups, an Amazon RDS PostgreSQL database, and an Application Load Balancer (ALB).
-5. **Continuous Deployment & Automated Verification:** Zero-downtime deployment to staging followed by automated HTTP 200 `/api/health` telemetry verification.
+By integrating **Jenkins** (Declarative Pipeline as Code) with **HashiCorp Terraform** (declarative cloud resource provisioning on AWS), the release process is fully automated from the developer Git commit through build, automated testing, container security scanning, cloud infrastructure planning, and deployment health verification.
 
 ---
 
-## 📊 Evaluation Rubric & Compliance Matrix (10 Marks / 5 Scale)
+## 🚀 What We Covered in This Project
 
-| Rubric Criterion | Weight | Key Deliverables & Implementation Highlights | Score Level |
-| :--- | :---: | :--- | :---: |
-| **1. Jenkins Configuration** | 2 Marks | Fully configured Jenkins pipeline job (`config.xml`), Jenkins Configuration as Code (`jenkins_casc.yaml`), GitHub repository integration (`https://github.com/YashSabale01/ShalaConnect.git`), webhook/polling triggers (`H/5 * * * *`), and containerized Docker-in-Docker controller (`docker-compose-jenkins.yml`). | **5 / 5** (Excellent) |
-| **2. Jenkinsfile / CI-CD Pipeline** | 2 Marks | Enterprise Declarative `Jenkinsfile` featuring 10 sequential stages: SCM Checkout, SAST Linting, JUnit 5 Tests, Packaging, Docker Build, Trivy Security Scan, Terraform IaC, Staging Deployment, Automated Smoke Test, and Post Actions. | **5 / 5** (Excellent) |
-| **3. CI/CD Execution** | 2 Marks | Verifiable build logs and screenshots demonstrating 100% green pipeline stage view, artifact archiving (`.jar`), JUnit test trend reports, and automated HTTP 200 `/api/health` verification. | **5 / 5** (Excellent) |
-| **4. Terraform Configuration** | 2 Marks | Modular, structured, reusable HCL configuration under `terraform/` featuring 4 core modules (`vpc`, `security`, `database`, `compute`), validated via `terraform validate`, plan output (+18 resources), and environment isolation (`staging`/`production`). | **5 / 5** (Excellent) |
-| **5. Demonstration & Viva** | 2 Marks | Comprehensive recorded online video demonstration script with verbatim cues, 25 in-depth technical Viva Q&A items, and an interactive CLI simulation script (`run_pipeline_simulation.sh`). | **5 / 5** (Excellent) |
+### 1. Continuous Integration (CI) Workflow
+- **Source Code Management (SCM) Integration:** Integrated with GitHub (`https://github.com/YashSabale01/ShalaConnect.git`) using credential binding and automated triggers (SCM polling `H/5 * * * *` and webhook hooks).
+- **Tooling & Environment Sanity:** Configured declarative agents with JDK 21, Maven 3.9, Docker CLI, and Terraform 1.14.
+- **Static Code Analysis & Linting:** Automated class compilation and static code audits using Checkstyle and SpotBugs to eliminate code smells and security flaws before test execution.
+- **Automated Unit & Integration Testing:** Automated execution of 48 JUnit 5 test cases covering controllers, services, JPA entities, and Spring Security JWT filters. Automated recording and archiving of Surefire test XML reports (`junit '**/target/surefire-reports/*.xml'`).
+- **Artifact Packaging & Fingerprinting:** Packaging of the production-ready fat JAR (`shalaconnect-backend-1.0.0.jar`) and archiving as an immutable build artifact.
+
+### 2. Containerization & DevSecOps
+- **Multi-Stage Docker Containerization:** Automated building of minimal OCI container images based on `eclipse-temurin:21-jre-alpine`, minimizing attack surface and runtime image footprint.
+- **Semantic Image Tagging:** Versioning each container image with both the Jenkins build number and the Git commit SHA (`${BUILD_NUMBER}-${GIT_COMMIT}`), plus a mutable `latest` tag.
+- **Container Vulnerability Scanning (Trivy):** Integrated automated CVE vulnerability auditing to inspect container base OS packages and application dependencies for HIGH and CRITICAL vulnerabilities prior to deployment.
+
+### 3. Infrastructure as Code (IaC) with HashiCorp Terraform
+- **Modular Architecture:** Structured the cloud infrastructure into 4 isolated, reusable modules under `terraform/modules/`:
+  - **`vpc` Module:** Provisions a dual-AZ Virtual Private Cloud (`10.0.0.0/16`) in AWS Mumbai (`ap-south-1`) with 2 Public Subnets, 2 Private Subnets, Internet Gateway, and Route Tables.
+  - **`security` Module:** Enforces a 3-tier defense-in-depth security model:
+    - *ALB Security Group:* Permits public ingress on HTTP 80 and HTTPS 443.
+    - *Application Security Group:* Strictly restricts ingress on port 8080 to traffic originating from the ALB Security Group.
+    - *Database Security Group:* Strictly restricts PostgreSQL port 5432 ingress to traffic originating from the Application Security Group.
+  - **`database` Module:** Manages a private Amazon RDS PostgreSQL 16 database instance with dedicated DB Subnet Groups, automatic backups, parameter groups, and encrypted storage.
+  - **`compute` Module:** Provisions an external Application Load Balancer (ALB), listener rules, target groups with active health checks on `/api/health`, and ECS cluster definitions.
+- **Multi-Environment Isolation:** Implemented dedicated environment configurations (`environments/staging` and `environments/production`) with separated variables and state.
+- **HCL Syntax & Plan Validation:** Validated via `terraform validate` and `terraform plan`, generating an execution plan adding 18 cloud resources with zero configuration drift.
+
+### 4. Continuous Deployment (CD) & Health Telemetry Verification
+- **Automated Staging Deployment:** Automated container lifecycle management—gracefully stopping prior container workloads, pulling updated images, and launching the new release with dynamic environment variables.
+- **Automated Smoke Testing:** Automated post-deployment HTTP retry loop validating `/api/health` endpoint returning `HTTP 200 OK` with JSON telemetry confirming application status (`UP`) and database connectivity (`CONNECTED`).
+- **Post-Build Pipeline Actions:** Workspace cleanup of temporary build files, test trend aggregation, and deployment notification handling.
 
 ---
 
@@ -46,14 +61,14 @@ Using **Jenkins** (Declarative Pipeline) and **HashiCorp Terraform**, the projec
 ```
 DevOps_Jenkins_Terraform_Assignment/
 │
-├── Jenkinsfile                                        # Master Declarative Jenkins Pipeline
-├── README.md                                          # Master Project Guide & Rubric Documentation
+├── Jenkinsfile                                        # Master Declarative Multi-Stage Jenkins Pipeline
+├── README.md                                          # Master Project & Implementation Documentation
 ├── DevOps_IA3_Jenkins_Terraform_Report_Yash_Sabale.pdf # Publication-Grade Academic PDF Report
 ├── DevOps_IA3_Jenkins_Terraform_Report_Yash_Sabale.docx# Academic Editable Word DOCX Report
 │
-├── jenkins/
-│   ├── Dockerfile.jenkins                             # Custom Jenkins image with Docker CLI, Maven, Terraform
-│   ├── docker-compose-jenkins.yml                     # Docker-in-Docker controller & agent orchestration
+├── jenkins/                                           # Jenkins Controller & Pipeline Job Configuration
+│   ├── Dockerfile.jenkins                             # Custom Jenkins image with Docker, Maven, Terraform
+│   ├── docker-compose-jenkins.yml                     # Containerized Jenkins Controller & Docker-in-Docker setup
 │   └── config/
 │       ├── config.xml                                 # Jenkins Pipeline Job definition XML
 │       ├── jenkins_casc.yaml                          # Jenkins Configuration as Code (JCasC) definition
@@ -61,11 +76,11 @@ DevOps_Jenkins_Terraform_Assignment/
 │
 ├── terraform/                                         # Modular Infrastructure as Code
 │   ├── main.tf                                        # Root Terraform orchestrator calling modules
-│   ├── provider.tf                                    # AWS Provider configuration & version pinning
-│   ├── variables.tf                                   # Root variable declarations with types & defaults
+│   ├── provider.tf                                    # AWS Provider configuration & version pinning (ap-south-1)
+│   ├── variables.tf                                   # Root variable declarations with types and defaults
 │   ├── outputs.tf                                     # Consolidated cloud infrastructure outputs
 │   ├── terraform.tfvars                               # Staging configuration parameters
-│   ├── terraform.tfvars.example                       # Template variable configuration
+│   ├── terraform.tfvars.example                       # Sample template variable configuration
 │   ├── modules/
 │   │   ├── vpc/                                       # Multi-AZ VPC, Subnets, IGW, Route Tables
 │   │   ├── security/                                  # Layered Security Groups (ALB, App, DB)
@@ -75,93 +90,67 @@ DevOps_Jenkins_Terraform_Assignment/
 │       ├── staging/                                   # Dedicated Staging workspace wrapper
 │       └── production/                                # Dedicated Production workspace wrapper
 │
-├── diagrams/                                          # 300 DPI High-Resolution Visual Architecture
-│   ├── jenkins_cicd_pipeline_architecture.png
-│   ├── terraform_aws_infrastructure_topology.png
-│   ├── jenkins_terraform_integration_flow.png
-│   └── gitops_deployment_lifecycle.png
+├── diagrams/                                          # High-Resolution Visual Architecture Diagrams
+│   ├── jenkins_cicd_pipeline_architecture.png         # 10-stage automated pipeline architecture
+│   ├── terraform_aws_infrastructure_topology.png      # Multi-AZ AWS cloud infrastructure topology
+│   ├── jenkins_terraform_integration_flow.png         # Jenkins + Terraform orchestration handshake
+│   └── gitops_deployment_lifecycle.png                # GitOps continuous delivery lifecycle
 │
 ├── screenshots/
-│   └── execution_evidence/                            # Terminal execution evidence & UI captures
-│       ├── 01_jenkins_pipeline_dashboard.png
-│       ├── 02_scm_checkout_stage.png
-│       ├── 03_maven_build_and_unit_tests.png
-│       ├── 04_docker_build_and_trivy_scan.png
-│       ├── 05_terraform_init_validate.png
-│       ├── 06_terraform_plan_execution.png
-│       ├── 07_terraform_apply_provisioning.png
-│       ├── 08_automated_deployment_staging.png
-│       ├── 09_automated_health_check_verification.png
-│       ├── 10_jenkins_pipeline_stage_view_success.png
-│       └── execution_test_output.log                  # Full pipeline console output log
+│   └── execution_evidence/                            # Student execution evidence screenshots
+│       └── .gitkeep
 │
-├── demonstration/
-│   ├── video_demonstration_script.md                  # Verbatim recording script with timestamps
-│   ├── viva_questions_answers.md                      # 25 in-depth Viva Voce questions & answers
-│   └── run_pipeline_simulation.sh                     # Interactive bash demonstration simulator
-│
-└── scripts/
-    ├── generate_diagrams.py                           # Matplotlib diagram generator
-    ├── generate_execution_evidence.py                 # Screenshot & execution log generator
-    ├── generate_report_docx.py                        # Academic Word report builder
-    └── generate_report_pdf.py                         # Academic PDF report builder
+└── demonstration/
+    ├── video_demonstration_script.md                  # Verbatim recording walkthrough script with timestamps
+    └── viva_questions_answers.md                      # 25 in-depth technical Viva Voce Q&As
 ```
 
 ---
 
-## 🛠️ Jenkins Pipeline Architecture (10 Stages)
+## 🛠️ Jenkins Pipeline Stages Overview
 
-1. **Stage 1: SCM Checkout & Environment Sanity:** Pulls source code from GitHub, validates git commit SHAs, and asserts tooling availability (`java`, `mvn`, `docker`, `terraform`).
-2. **Stage 2: Static Code Analysis & Security Linting:** Executes `mvn compile -DskipTests`, Checkstyle formatting verification, and SpotBugs static security analysis.
-3. **Stage 3: Automated Unit & Integration Testing:** Executes `mvn test`, running all 48 JUnit 5 test cases and recording test XMLs via the `junit` post-step.
-4. **Stage 4: Build & Package Artifact:** Generates production fat JAR (`shalaconnect-backend-1.0.0.jar`) and archives the build binary with SHA-256 fingerprinting.
-5. **Stage 5: Container Image Build & Tagging:** Builds a lightweight container image based on `eclipse-temurin:21-jre-alpine`, tagging it with `${BUILD_NUMBER}-${GIT_COMMIT}` and `latest`.
-6. **Stage 6: Container Vulnerability Scanning (Trivy):** Scans the image for HIGH and CRITICAL vulnerabilities to enforce DevSecOps quality gates.
-7. **Stage 7: Terraform Infrastructure Provisioning:** Executes `terraform init`, `validate`, and `plan`. For staging, it applies the planned infrastructure to maintain synchronization with cloud resources.
-8. **Stage 8: Automated Application Deployment:** Gracefully rotates the existing container and launches the updated microservice on port 8080 with environment parameters.
-9. **Stage 9: Automated Smoke Testing & Health Verification:** Executes an automated curl retry loop against `/api/health`, asserting HTTP 200 OK and database connectivity.
-10. **Stage 10: Post-Build Cleanup & Notifications:** Cleans temporary workspace files, publishes test trend telemetry, and dispatches build notifications.
-
----
-
-## 🏗️ Terraform Infrastructure Architecture
-
-The Terraform configuration defines an enterprise multi-tier infrastructure on AWS (Mumbai `ap-south-1`):
-- **VPC & Subnets:** `10.0.0.0/16` CIDR with two Public Subnets (`10.0.1.0/24`, `10.0.2.0/24`) across `ap-south-1a` and `ap-south-1b`, and two Private Subnets (`10.0.10.0/24`, `10.0.11.0/24`).
-- **Security Groups:** 3-tier defense-in-depth isolation:
-  - *ALB SG:* Inbound HTTP (80) & HTTPS (443) from `0.0.0.0/0`.
-  - *App SG:* Inbound HTTP (8080) strictly from ALB Security Group.
-  - *Database SG:* Inbound PostgreSQL (5432) strictly from App Security Group.
-- **Relational Database:** Amazon RDS PostgreSQL 16 with private DB Subnet Group and encrypted storage.
-- **Application Load Balancer:** External ALB with health check target group routed to `/api/health`.
+| Stage | Name | Key Operations Performed |
+| :---: | :--- | :--- |
+| **1** | **SCM Checkout & Environment Sanity** | Clones repository, validates Git commit SHA, asserts JDK 21, Maven 3.9, Docker, and Terraform. |
+| **2** | **Static Code Analysis & Linting** | Runs `mvn compile -DskipTests`, Checkstyle rules, and SpotBugs security audit. |
+| **3** | **Automated Unit & Integration Testing** | Runs `mvn test`, executes 48 JUnit 5 test cases, and archives Surefire test XMLs. |
+| **4** | **Build & Package Artifact** | Compiles production fat JAR `shalaconnect-backend-1.0.0.jar` with SHA-256 fingerprint. |
+| **5** | **Container Image Build & Tagging** | Builds Docker container image tagged with `${BUILD_NUMBER}-${GIT_COMMIT}` and `latest`. |
+| **6** | **Container Vulnerability Scanning** | Trivy scans container OS layers and JAR dependencies for HIGH and CRITICAL CVEs. |
+| **7** | **Terraform Infrastructure Provisioning** | Executes `terraform init`, `validate`, and `plan` (+18 resources planned for AWS). |
+| **8** | **Automated Application Deployment** | Deploys containerized application to the staging environment host. |
+| **9** | **Automated Smoke Testing** | Queries `/api/health` via curl retry loop, asserting `HTTP 200 OK` and `"status": "UP"`. |
+| **10** | **Post-Build Actions** | Publishes JUnit test results, performs workspace cleanup, and dispatches status notifications. |
 
 ---
 
-## 🚀 Execution & Verification Commands
+## ⚡ Execution & Verification Commands
 
-### 1. Validate Terraform Configuration
-```bash
-cd DevOps_Jenkins_Terraform_Assignment/terraform
+### 1. Validate & Plan Terraform Cloud Infrastructure
+```powershell
+cd "D:\java\New folder\ShalaConnect\DevOps_Jenkins_Terraform_Assignment\terraform"
 terraform init
 terraform validate
-terraform fmt -check
 terraform plan -var="environment=staging"
 ```
 
-### 2. Run Interactive Demonstration Simulator
-```bash
-bash DevOps_Jenkins_Terraform_Assignment/demonstration/run_pipeline_simulation.sh
+### 2. Launch Website Frontend Portal
+```powershell
+cd "D:\java\New folder\ShalaConnect\frontend"
+npm run dev
+# Access via browser at: http://localhost:5173
 ```
 
-### 3. Verify Health Telemetry
-```bash
-curl -i http://localhost:8080/api/health
+### 3. Verify Backend Health Telemetry Endpoint
+```powershell
+curl.exe -i http://localhost:8085/api/health
 ```
 
 ---
 
-## 👨‍🎓 Submission Credentials
+## 👨‍🎓 Project Metadata & Authentication
 - **Student Name:** Yash Janardan Sabale
-- **PRN:** 2310423T26-27
-- **Class / Division:** Computer Engineering (Batch 2026–2027)
+- **PRN:** 202301040087
 - **Institution:** MIT Academy of Engineering, Alandi (D), Pune - 412105
+- **Department:** Department of Computer Engineering
+- **Academic Year:** 2026–2027

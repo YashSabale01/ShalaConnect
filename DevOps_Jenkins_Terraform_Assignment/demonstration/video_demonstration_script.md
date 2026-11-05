@@ -4,7 +4,7 @@
 **Department:** Department of Computer Engineering  
 **Institution:** MIT Academy of Engineering, Alandi (D), Pune  
 **Student Name:** Yash Janardan Sabale  
-**PRN:** 2310423T26-27  
+**PRN:** 202301040087  
 **Repository:** [https://github.com/YashSabale01/ShalaConnect.git](https://github.com/YashSabale01/ShalaConnect.git)  
 **Target Application:** ShalaConnect (Spring Boot 3.2 / Java 21 Cloud-Native Microservice)
 
@@ -26,7 +26,7 @@
 
 ### [00:00 - 01:00] Introduction & Project Context
 **[VISUAL: Webcam + Title slide or GitHub Repository README]**
-> *"Respected faculty, examiners, and colleagues. Good day. My name is **Yash Janardan Sabale**, PRN **2310423T26-27**, studying Computer Engineering at MIT Academy of Engineering, Pune.*
+> *"Respected faculty, examiners, and colleagues. Good day. My name is **Yash Janardan Sabale**, PRN **202301040087**, studying Computer Engineering at MIT Academy of Engineering, Pune.*
 >
 > *Today, I am demonstrating my submission for **IA Activity No. 3: Jenkins CI/CD + Terraform Mini Project** for our DevOps & Cloud Engineering course.*
 >

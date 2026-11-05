@@ -9,7 +9,7 @@
       <options/>
     </org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction>
   </actions>
-  <description>Automated CI/CD Pipeline for ShalaConnect Application &amp; Terraform AWS Infrastructure Provisioning. Maintained by Yash Janardan Sabale (PRN: 2310423T26-27), MITAOE.</description>
+  <description>Automated CI/CD Pipeline for ShalaConnect Application &amp; Terraform AWS Infrastructure Provisioning. Maintained by Yash Janardan Sabale (PRN: 202301040087), MITAOE.</description>
   <keepDependencies>false</keepDependencies>
   <properties>
     <jenkins.model.BuildDiscarderProperty>

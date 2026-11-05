@@ -16,7 +16,7 @@ provider "aws" {
       Project     = "shalaconnect"
       Environment = "staging"
       ManagedBy   = "Terraform"
-      Owner       = "Yash Sabale (PRN: 2310423T26-27)"
+      Owner       = "Yash Sabale (PRN: 202301040087)"
     }
   }
 }

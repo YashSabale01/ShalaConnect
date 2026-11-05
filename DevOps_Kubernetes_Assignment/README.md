@@ -100,22 +100,6 @@ DevOps_Kubernetes_Assignment/
 │   ├── cloud_native_gitops_pipeline.png               # GitOps continuous delivery & telemetry loop
 │   └── pod_lifecycle_and_probes.png                   # Probe state machine (Startup, Ready, Live)
 │
-├── screenshots/
-│   └── execution_evidence/                            # Verified CLI execution screenshots (12 Artifacts)
-│       ├── 01_docker_version.png                      # Docker Engine & Client verification
-│       ├── 02_docker_build_multistage.png             # Multi-stage image build execution
-│       ├── 03_docker_images_inspection.png            # 178 MB image inspection & non-root user
-│       ├── 04_docker_run_container.png                # Container run & port 8080 mapping
-│       ├── 05_docker_health_and_logs.png              # Container health status (healthy) & stdout logs
-│       ├── 06_kubectl_cluster_info.png                # Multi-node Kubernetes cluster & node status
-│       ├── 07_kubectl_apply_manifests.png             # Declarative manifest application
-│       ├── 08_kubectl_get_pods_services.png           # 3/3 Pods running & NodePort 30080 active
-│       ├── 09_kubectl_describe_pod_probes.png         # Liveness/Readiness probes & QoS resource limits
-│       ├── 10_kubectl_rolling_update.png              # Zero-downtime rolling update & rollout history
-│       ├── 11_kubectl_hpa_autoscaling.png             # Horizontal Pod Autoscaler scaling under workload
-│       ├── 12_curl_service_telemetry.png              # Microservice HTTP 200 telemetry probe
-│       └── execution_test_output.log                  # Raw terminal execution log file
-│
 └── docs/                                              # In-Depth Technical Documentation
     ├── Kubernetes_Case_Study.md                       # Comprehensive 25-section academic case study
     ├── Cloud_Native_Architecture.md                   # System design, namespaces & cgroup primitives
