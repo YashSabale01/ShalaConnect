@@ -136,35 +136,63 @@ def generate_docx():
 
     doc.add_page_break()
 
-    # Section 3: Technical Implementation Details
-    doc.add_heading("3. Deep-Dive Technical Implementation & Cloud Concepts", level=1)
+    # Section 3: Core Configuration Files & Live Browser Access (Evaluator Deliverables)
+    doc.add_heading("3. Core Configuration Files & Live Browser Access", level=1)
     
-    doc.add_heading("3.1 Docker Multi-Stage Packaging & Security Hardening", level=2)
+    doc.add_heading("3.1 Production Multi-Stage Dockerfile Contents", level=2)
     doc.add_paragraph(
         "Single-stage Docker images carry compilers, package managers, and temporary build caches into production, "
         "expanding the attack surface. In our multi-stage Dockerfile, Stage 1 (maven:3.9.6-eclipse-temurin-21-alpine) resolves "
         "dependencies and compiles the application, while Stage 2 (eclipse-temurin:21-jre-alpine) copies exclusively the fat JAR. "
         "The runtime container executes under an unprivileged user (appuser, UID 10001), satisfying CIS Docker Benchmark 4.1."
     )
+    p_df = EVID_DIR / "dockerfile_contents.png"
+    if p_df.exists():
+        doc.add_paragraph("Figure 5: ShalaConnect Multi-Stage Dockerfile Specification (PowerShell Inspection)").runs[0].bold = True
+        doc.add_picture(str(p_df), width=Inches(6.4))
+        doc.add_paragraph()
 
-    doc.add_heading("3.2 Kubernetes Declarative Architecture & Self-Healing", level=2)
+    doc.add_heading("3.2 Kubernetes Deployment Manifest (03-deployment.yaml)", level=2)
     doc.add_paragraph(
         "The Kubernetes deployment manages 3 pod replicas across worker nodes. Decoupled ConfigMaps and Secrets inject environmental "
         "configurations and credentials. Three complementary probes ensure self-healing: startupProbe buffers JVM cold starts, "
         "readinessProbe isolates unready pods from the service endpoints, and livenessProbe restarts deadlocked containers. "
         "A rolling update strategy (maxSurge: 1, maxUnavailable: 0) guarantees zero downtime during application upgrades."
     )
+    p_dep = EVID_DIR / "deployment_yaml_contents.png"
+    if p_dep.exists():
+        doc.add_paragraph("Figure 6: Kubernetes Declarative Deployment Specification (03-deployment.yaml)").runs[0].bold = True
+        doc.add_picture(str(p_dep), width=Inches(6.4))
+        doc.add_paragraph()
 
-    doc.add_heading("3.3 Service Mesh, Endpoint Discovery & Autoscaling", level=2)
+    doc.add_heading("3.3 Kubernetes Service Manifest (04-service.yaml)", level=2)
     doc.add_paragraph(
         "Traffic is distributed across pods via a NodePort service on port 30080 and an internal ClusterIP service. Kube-proxy "
-        "dynamically synchronizes IPVS / iptables rules as pods scale. Under heavy synthetic traffic, the HorizontalPodAutoscaler (HPA) "
-        "scales replicas elastically from 3 to 6 upon detecting CPU utilization exceeding 70%."
+        "dynamically synchronizes IPVS / iptables rules as pods scale, mapping NodePort 30080 to container port 8080."
     )
+    p_svc = EVID_DIR / "service_yaml_contents.png"
+    if p_svc.exists():
+        doc.add_paragraph("Figure 7: Kubernetes Service Specification (04-service.yaml)").runs[0].bold = True
+        doc.add_picture(str(p_svc), width=Inches(6.4))
+        doc.add_paragraph()
 
     doc.add_page_break()
 
-    # Section 4: Authentic Terminal Evidence (12 Screenshots)
+    doc.add_heading("3.4 Browser-Accessible Live Web Application (NodePort 30080)", level=2)
+    doc.add_paragraph(
+        "External clients access the application via NodePort 30080 at http://localhost:30080/. The interactive dashboard "
+        "displays live pod identity, healthy status badge, student metadata (Yash Janardan Sabale, PRN: 202301040087), JVM heap "
+        "consumption, request throughput, and live probe status."
+    )
+    p_br = EVID_DIR / "browser_accessible_dashboard.png"
+    if p_br.exists():
+        doc.add_paragraph("Figure 8: Browser-Accessible Live Web Application Dashboard (http://localhost:30080/)").runs[0].bold = True
+        doc.add_picture(str(p_br), width=Inches(6.4))
+        doc.add_paragraph()
+
+    doc.add_page_break()
+
+    # Section 4: Authentic Terminal Evidence (12 Verified Artifacts)
     doc.add_heading("4. Authentic Practical Execution Evidence (12 Verified Artifacts)", level=1)
     
     evidence_items = [
@@ -194,7 +222,7 @@ def generate_docx():
     # Section 5: Demonstration Script & Viva Voce
     doc.add_heading("5. Video Demonstration Script & Technical Viva Voce Defense", level=1)
     doc.add_paragraph(
-        "A full 5-7 minute demonstration video script has been documented in docs/DEMO_SCRIPT_AND_VIVA.md. "
+        "A full 5-8 minute demonstration video script has been documented in docs/DEMO_RECORDING_SCRIPT.md. "
         "Additionally, 30 rigorous Viva Voce questions and model answers covering Docker isolation, OCI standards, "
         "Kubernetes control plane architecture, CNI networking, probes, and rolling updates are prepared."
     )
